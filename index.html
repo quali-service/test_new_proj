@@ -25,44 +25,37 @@
     // 1. CONFIGURATION: Your Published Web App URL
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxS1AiF9YIkNRtx6jNEHktZlTURrjbkxREgqj1v2CYc7mynfqHw0hgYXdoC-m1I1cAv2A/exec";
 
-    async function loadQuestion() {
-        console.log("--- DEBUG START ---");
+  async function loadQuestion() {
+    const urlParams = new URLSearchParams(window.location.search);
+    let questionId = urlParams.get('id');
+
+    // --- NEW RANDOMIZER LOGIC ---
+    if (!questionId) {
+        // Define your range (e.g., from row 2 to 5)
+        const minRow = 2;
+        const maxRow = 5; // Update this number as you add rows
+        const randomId = Math.floor(Math.random() * (maxRow - minRow + 1)) + minRow;
         
-        // 2. GET ID FROM URL (Directly, no parent/iframe logic needed)
-        const urlParams = new URLSearchParams(window.location.search);
-        const questionId = urlParams.get('id') || "2"; // Defaults to row 2 if no ID
+        console.log("No ID found. Redirecting to random ID:", randomId);
         
-        console.log("URL detected:", window.location.href);
-        console.log("Targeting Question ID:", questionId);
-
-        document.getElementById('loading').textContent = `Chargement de la question ${questionId}...`;
-
-        try {
-            const fetchUrl = `${SCRIPT_URL}?id=${questionId}`;
-            console.log("Requesting data from Apps Script...");
-
-            const response = await fetch(fetchUrl);
-            
-            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-
-            const data = await response.json();
-            console.log("JSON Received:", data);
-
-            // Safety check: Make sure the JSON has the expected keys
-            if (!data.question || !data.choix) {
-                throw new Error("JSON structure is incorrect. Check Column E in your sheet.");
-            }
-
-            renderQuiz(data);
-        } catch (err) {
-            console.error("CRITICAL ERROR:", err.message);
-            document.getElementById('loading').innerHTML = `
-                <div class="text-red-600 font-bold">Erreur de chargement</div>
-                <div class="text-xs text-gray-500 mt-2">Détails : ${err.message}</div>
-                <div class="text-[10px] text-gray-400 mt-4">Vérifiez que le Web App est déployé en 'Anyone'</div>
-            `;
-        }
+        // Reload the page with the new ID
+        window.location.search = `?id=${randomId}`;
+        return; // Stop execution here, the page will reload
     }
+    // --- END OF RANDOMIZER ---
+
+    console.log("Targeting Question ID:", questionId);
+    document.getElementById('loading').textContent = `Chargement de la question ${questionId}...`;
+
+    try {
+        const fetchUrl = `${SCRIPT_URL}?id=${questionId}&nocache=${new Date().getTime()}`;
+        const response = await fetch(fetchUrl);
+        const data = await response.json();
+        renderQuiz(data);
+    } catch (err) {
+        console.error("Error:", err);
+    }
+}
 
     function renderQuiz(data) {
         document.getElementById('loading').classList.add('hidden');
