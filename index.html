@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white">
+    <div id="quiz-container" class="max-w-md mx-auto p-4 border rounded-2xl shadow-sm">
+        <div id="loading" class="text-center py-10 text-gray-500 italic">Initialisation...</div>
+        
+        <div id="quiz-content" class="hidden">
+            <h1 id="question" class="text-xl font-bold text-gray-900 mb-5"></h1>
+            <form id="quiz-form" class="space-y-3">
+                <div id="options-container" class="space-y-2"></div>
+                <button type="submit" id="submit-btn" class="w-full bg-black text-white py-3 rounded-xl mt-4">Valider</button>
+            </form>
+            <div id="result" class="hidden mt-5 p-4 rounded-xl border">
+                <p id="result-text" class="font-bold"></p>
+                <p id="explanation" class="text-sm mt-1"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. CONFIGURATION: Paste your Apps Script Web App URL here
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxS1AiF9YIkNRtx6jNEHktZlTURrjbkxREgqj1v2CYc7mynfqHw0hgYXdoC-m1I1cAv2A/exec";
+
+        async function loadQuestion() {
+            console.log("--- DEBUG START ---");
+            
+            // Log the parent URL and the iframe URL
+            console.log("Iframe URL:", window.location.href);
+            console.log("Parent URL (if accessible):", document.referrer);
+
+            // Attempt to get ID from the URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            // If Google Sites hides parameters, check parent window
+            const parentParams = new URLSearchParams(window.top.location.search);
+            
+            const questionId = parentParams.get('id') || urlParams.get('id') || "2"; 
+            
+            console.log("Detected Question ID:", questionId);
+
+            document.getElementById('loading').textContent = `Chargement de la ligne ${questionId}...`;
+
+            try {
+                const fetchUrl = `${SCRIPT_URL}?id=${questionId}`;
+                console.log("Fetching from Apps Script:", fetchUrl);
+
+                const response = await fetch(fetchUrl);
+                
+                if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+
+                const data = await response.json();
+                console.log("Data Received Successfully:", data);
+
+                renderQuiz(data);
+            } catch (err) {
+                console.error("CRITICAL ERROR:", err.message);
+                document.getElementById('loading').innerHTML = `
+                    <div class="text-red-600 font-bold">Erreur de chargement</div>
+                    <div class="text-xs text-gray-400 mt-2">${err.message}</div>
+                `;
+            }
+        }
+
+        function renderQuiz(data) {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('quiz-content').classList.remove('hidden');
+            document.getElementById('question').textContent = data.question;
+
+            const container = document.getElementById('options-container');
+            data.choix.forEach((text, index) => {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <input type="radio" name="answer" id="opt${index}" value="${index}" class="hidden peer" required>
+                    <label for="opt${index}" class="flex items-center p-3 border rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:bg-gray-50 transition-all text-sm">
+                        ${text}
+                    </label>
+                `;
+                container.appendChild(div);
+            });
+
+            document.getElementById('quiz-form').onsubmit = (e) => {
+                e.preventDefault();
+                const userAns = parseInt(new FormData(e.target).get('answer'));
+                console.log("User submitted option index:", userAns);
+                console.log("Correct index was:", data.reponse_correcte);
+
+                const isCorrect = userAns === data.reponse_correcte;
+                
+                const resDiv = document.getElementById('result');
+                resDiv.classList.remove('hidden');
+                resDiv.className = isCorrect ? "mt-5 p-4 rounded-xl bg-green-50 border-green-200" : "mt-5 p-4 rounded-xl bg-red-50 border-red-200";
+                
+                document.getElementById('result-text').textContent = isCorrect ? "✅ Bravo !" : "❌ Incorrect";
+                document.getElementById('explanation').textContent = isCorrect ? 
+                    (data.explication.explication_succes || data.explication) : 
+                    (data.explication.explication_erreur || data.explication);
+                
+                document.getElementById('submit-btn').classList.add('hidden');
+            };
+        }
+
+        // Start the engine
+        loadQuestion();
+    </script>
+</body>
+</html>
