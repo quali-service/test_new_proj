@@ -26,7 +26,14 @@ async function loadQuestion() {
         try {
             const res = await fetch(`${SCRIPT_URL}?action=getMax`);
             const data = await res.json();
-            const randomId = Math.floor(Math.random() * (data.max - 2 + 1)) + 2;
+            // Sécurité : si data.max est invalide, on force à 2
+const maxRow = parseInt(data.max) || 2; 
+const minRow = 2;
+
+// Calcul robuste
+const randomId = maxRow > minRow 
+    ? Math.floor(Math.random() * (maxRow - minRow + 1)) + minRow 
+    : minRow;
             window.location.search = `?id=${randomId}`;
         } catch (e) {
             console.error("Redirect logic failed:", e);
