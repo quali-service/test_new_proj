@@ -1,21 +1,37 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxkE29MV0DRYqIbxI4XrstFVq-8fN9fd70w72T4lXMolDt7jZbd6WDKlPvHihZa-GAIkQ/exec";
 
-// État global
+// Global State
 let currentQuestionId = null;
 
-/**
- * Navigation entre les onglets
+/** * 1. UI DISPLAY FUNCTIONS (Defined first so they are ready)
  */
 function showSection(sectionId) {
     document.getElementById('form-section').classList.toggle('hidden', sectionId !== 'form-section');
     document.getElementById('quiz-section').classList.toggle('hidden', sectionId !== 'quiz-section');
-    
     document.getElementById('nav-form').classList.toggle('nav-active', sectionId === 'form-section');
     document.getElementById('nav-quiz').classList.toggle('nav-active', sectionId === 'quiz-section');
 }
 
+function displayResults(isCorrect, data) {
+    const resDiv = document.getElementById('result');
+    if (!resDiv) return;
+
+    resDiv.classList.remove('hidden');
+    resDiv.className = `mt-8 p-6 rounded-2xl border-2 animate-reveal ${isCorrect ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`;
+    
+    document.getElementById('result-icon').textContent = isCorrect ? "✨" : "🧐";
+    document.getElementById('result-text').textContent = isCorrect ? "Bravo !" : "Presque...";
+    document.getElementById('result-text').className = `font-bold text-lg ${isCorrect ? 'text-emerald-800' : 'text-rose-800'}`;
+    
+    const exp = data.explication;
+    document.getElementById('explanation').textContent = isCorrect ? 
+        (exp.explication_succes || exp) : (exp.explication_erreur || exp);
+    
+    document.getElementById('submit-btn').classList.add('hidden');
+}
+
 /**
- * Chargement initial
+ * 2. CORE LOGIC
  */
 async function loadQuestion() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -44,24 +60,19 @@ async function loadQuestion() {
     }
 }
 
-/**
- * Affichage du Quiz et des Stats
- */
 function renderQuiz(data) {
     document.getElementById('loading').classList.add('hidden');
     document.getElementById('quiz-content').classList.remove('hidden');
     document.getElementById('question').textContent = data.question;
     
-    // 1. Gestion des Statistiques
+    // Stats injection
     const successRate = (data.global_stats && data.global_stats.success_rate) ? data.global_stats.success_rate : 0;
-    
     let statsContainer = document.getElementById('stats-container');
     if (!statsContainer) {
         statsContainer = document.createElement('div');
         statsContainer.id = 'stats-container';
         document.getElementById('question').before(statsContainer);
     }
-
     statsContainer.innerHTML = `
         <div class="flex items-center gap-2 mt-2 mb-6">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Taux de réussite :</span>
@@ -72,7 +83,6 @@ function renderQuiz(data) {
         </div>
     `;
 
-    // 2. Génération des Options (Correction du bug "not focusable")
     const container = document.getElementById('options-container');
     container.innerHTML = "";
 
@@ -89,7 +99,6 @@ function renderQuiz(data) {
         container.appendChild(label);
     });
 
-    // 3. Gestion de la soumission
     document.getElementById('quiz-form').onsubmit = async (e) => {
         e.preventDefault();
         const submitBtn = document.getElementById('submit-btn');
@@ -105,6 +114,7 @@ function renderQuiz(data) {
             is_correct: isCorrect
         };
 
+        // This call will work now because displayResults is defined above!
         displayResults(isCorrect, data);
 
         try {
@@ -115,28 +125,10 @@ function renderQuiz(data) {
                 body: JSON.stringify(logData)
             });
         } catch (err) {
-            console.warn("Log non envoyé au tableur.");
+            console.warn("Log failed");
         }
     };
 }
 
-/**
- * Affichage des résultats
- */
-function displayResults(isCorrect, data) {
-    const resDiv = document.getElementById('result');
-    resDiv.classList.remove('hidden');
-    resDiv.className = `mt-8 p-6 rounded-2xl border-2 animate-reveal ${isCorrect ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`;
-    
-    document.getElementById('result-icon').textContent = isCorrect ? "✨" : "🧐";
-    document.getElementById('result-text').textContent = isCorrect ? "Bravo !" : "Presque...";
-    document.getElementById('result-text').className = `font-bold text-lg ${isCorrect ? 'text-emerald-800' : 'text-rose-800'}`;
-    
-    const exp = data.explication;
-    document.getElementById('explanation').textContent = isCorrect ? 
-        (exp.explication_succes || exp) : (exp.explication_erreur || exp);
-    
-    document.getElementById('submit-btn').classList.add('hidden');
-}
-
+// 3. START APP
 loadQuestion();
