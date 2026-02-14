@@ -72,25 +72,45 @@ async function loadQuestion() {
  */
 function renderQuiz(data) {
     document.getElementById('loading').classList.add('hidden');
-    document.getElementById('quiz-content').classList.remove('hidden');
-    document.getElementById('question').textContent = data.question;
+    const content = document.getElementById('quiz-content');
+    content.classList.remove('hidden');
     
+    // 1. Mise à jour de la question
+    document.getElementById('question').textContent = data.question;
+
+    // 2. Injection des Statistiques Globales (Avant la question ou le formulaire)
+    // On vérifie si les stats existent pour éviter une erreur
+    const successRate = data.global_stats ? data.global_stats.success_rate : 0;
+    
+    // On crée ou on met à jour un conteneur pour les stats
+    let statsContainer = document.getElementById('stats-container');
+    if (!statsContainer) {
+        statsContainer = document.createElement('div');
+        statsContainer.id = 'stats-container';
+        document.getElementById('question').before(statsContainer);
+    }
+
+    statsContainer.innerHTML = `
+        <div class="flex items-center gap-2 mt-2 mb-6">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Taux de réussite :</span>
+            <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full bg-amber-400 transition-all duration-1000" style="width: ${successRate}%"></div>
+            </div>
+            <span class="text-[10px] font-bold text-slate-500">${successRate}%</span>
+        </div>
+    `;
+
+    // 3. Génération des Options
     const container = document.getElementById('options-container');
     container.innerHTML = "";
 
     data.choix.forEach((text, index) => {
         const label = document.createElement('label');
         label.className = "flex items-center p-4 border-2 border-slate-100 rounded-2xl cursor-pointer hover:border-indigo-100 hover:bg-indigo-50/30 transition-all group";
+        
+        // Note: opacity-0 au lieu de hidden pour éviter l'erreur "not focusable"
         label.innerHTML = `
-        const statsHtml = `
-    <div class="flex items-center gap-2 mt-2 mb-6">
-        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Taux de réussite :</span>
-        <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-            <div class="h-full bg-amber-400" style="width: ${data.global_stats.success_rate}%"></div>
-        </div>
-        <span class="text-[10px] font-bold text-slate-500">${data.global_stats.success_rate}%</span>
-    </div>
-            <input type="radio" name="answer" value="${index}" class="hidden peer" required>
+            <input type="radio" name="answer" value="${index}" class="absolute opacity-0 w-0 h-0 peer" required>
             <div class="w-5 h-5 border-2 border-slate-300 rounded-full flex items-center justify-center peer-checked:border-indigo-500 peer-checked:bg-indigo-500 transition-all mr-4">
                 <div class="w-1.5 h-1.5 bg-white rounded-full scale-0 peer-checked:scale-100 transition-transform"></div>
             </div>
@@ -99,25 +119,25 @@ function renderQuiz(data) {
         container.appendChild(label);
     });
 
-    // Handle Submission
+    // 4. Gestion de la soumission
     document.getElementById('quiz-form').onsubmit = async (e) => {
         e.preventDefault();
         const submitBtn = document.getElementById('submit-btn');
         submitBtn.disabled = true;
 
-        const userAns = parseInt(new FormData(e.target).get('answer'));
+        const formData = new FormData(e.target);
+        const userAns = parseInt(formData.get('answer'));
         const isCorrect = userAns === data.reponse_correcte;
 
-        // Data to log back to the Spreadsheet
         const logData = {
             question_id: currentQuestionId,
             result: userAns,
             is_correct: isCorrect
         };
 
+        // Appelle la fonction d'affichage des résultats (définie ailleurs dans app.js)
         displayResults(isCorrect, data);
 
-        // Silent POST to Google Sheets
         try {
             await fetch(SCRIPT_URL, {
                 method: 'POST',
@@ -126,28 +146,9 @@ function renderQuiz(data) {
                 body: JSON.stringify(logData)
             });
         } catch (err) {
-            console.warn("Telemetry log failed, but quiz continues.");
+            console.warn("Telemetry log failed.");
         }
     };
-}
-
-/**
- * Display Success/Failure UI
- */
-function displayResults(isCorrect, data) {
-    const resDiv = document.getElementById('result');
-    resDiv.classList.remove('hidden');
-    resDiv.className = `mt-8 p-6 rounded-2xl border-2 animate-reveal ${isCorrect ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`;
-    
-    document.getElementById('result-icon').textContent = isCorrect ? "✨" : "🧐";
-    document.getElementById('result-text').textContent = isCorrect ? "Bravo !" : "Presque...";
-    document.getElementById('result-text').className = `font-bold text-lg ${isCorrect ? 'text-emerald-800' : 'text-rose-800'}`;
-    
-    const exp = data.explication;
-    document.getElementById('explanation').textContent = isCorrect ? 
-        (exp.explication_succes || exp) : (exp.explication_erreur || exp);
-    
-    document.getElementById('submit-btn').classList.add('hidden');
 }
 
 // Start the app
