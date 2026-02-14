@@ -1,88 +1,60 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxD5gTbUqZmTjVxvW7iO9h96VudY8LZLs-MKVlkizU5I-3GbntaLTJxgRWdj86TeZqQXA/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxkE29MV0DRYqIbxI4XrstFVq-8fN9fd70w72T4lXMolDt7jZbd6WDKlPvHihZa-GAIkQ/exec";
 
-// Global state
+// État global
 let currentQuestionId = null;
 
 /**
- * Handle Tab Switching
+ * Navigation entre les onglets
  */
 function showSection(sectionId) {
     document.getElementById('form-section').classList.toggle('hidden', sectionId !== 'form-section');
     document.getElementById('quiz-section').classList.toggle('hidden', sectionId !== 'quiz-section');
     
-    // UI Feedback for Nav buttons
     document.getElementById('nav-form').classList.toggle('nav-active', sectionId === 'form-section');
     document.getElementById('nav-quiz').classList.toggle('nav-active', sectionId === 'quiz-section');
 }
 
 /**
- * Initial load: Check for ID or pick random
+ * Chargement initial
  */
 async function loadQuestion() {
     const urlParams = new URLSearchParams(window.location.search);
     currentQuestionId = urlParams.get('id');
 
-    // 1. Si l'ID est manquant, nul ou n'est pas un nombre
     if (!currentQuestionId || isNaN(currentQuestionId)) {
-        console.log("ID invalide ou absent. Recherche du maximum...");
         try {
             const res = await fetch(`${SCRIPT_URL}?action=getMax`);
             const data = await res.json();
-            
-            // Sécurité : on s'assure que data.max est un nombre
-            const max = parseInt(data.max);
-            if (isNaN(max)) throw new Error("Max n'est pas un nombre");
-
+            const max = parseInt(data.max) || 2;
             const randomId = Math.floor(Math.random() * (max - 2 + 1)) + 2;
-            
-            // On redirige proprement
             window.location.search = `?id=${randomId}`;
-            return;
         } catch (e) {
-            console.error("Erreur lors de la génération aléatoire:", e);
-            // Fallback : on force l'ID 2 si tout échoue
             window.location.search = `?id=2`;
-            return;
         }
+        return;
     }
 
-    // 2. Si on arrive ici, l'ID est valide
-    console.log("ID valide détecté :", currentQuestionId);
-    
     try {
         const response = await fetch(`${SCRIPT_URL}?id=${currentQuestionId}&cache=${Date.now()}`);
         const data = await response.json();
-        
-        // Vérification si Google a renvoyé une erreur
-        if (data.error) {
-            document.getElementById('loading').innerHTML = `<p class="text-amber-600">Erreur : ${data.error}</p>`;
-            return;
-        }
-
         renderQuiz(data);
         document.getElementById('progress-bar').style.width = '100%';
     } catch (err) {
-        console.error("Erreur de fetch question:", err);
-        document.getElementById('loading').innerHTML = `<p class="text-red-500 font-bold">Question introuvable</p>`;
+        document.getElementById('loading').innerHTML = `<p class="text-red-500 font-bold">Erreur de connexion</p>`;
     }
 }
 
 /**
- * Generate Quiz HTML
+ * Affichage du Quiz et des Stats
  */
 function renderQuiz(data) {
     document.getElementById('loading').classList.add('hidden');
-    const content = document.getElementById('quiz-content');
-    content.classList.remove('hidden');
-    
-    // 1. Mise à jour de la question
+    document.getElementById('quiz-content').classList.remove('hidden');
     document.getElementById('question').textContent = data.question;
-
-    // 2. Injection des Statistiques Globales (Avant la question ou le formulaire)
-    // On vérifie si les stats existent pour éviter une erreur
-    const successRate = data.global_stats ? data.global_stats.success_rate : 0;
     
-    // On crée ou on met à jour un conteneur pour les stats
+    // 1. Gestion des Statistiques
+    const successRate = (data.global_stats && data.global_stats.success_rate) ? data.global_stats.success_rate : 0;
+    
     let statsContainer = document.getElementById('stats-container');
     if (!statsContainer) {
         statsContainer = document.createElement('div');
@@ -100,15 +72,13 @@ function renderQuiz(data) {
         </div>
     `;
 
-    // 3. Génération des Options
+    // 2. Génération des Options (Correction du bug "not focusable")
     const container = document.getElementById('options-container');
     container.innerHTML = "";
 
     data.choix.forEach((text, index) => {
         const label = document.createElement('label');
         label.className = "flex items-center p-4 border-2 border-slate-100 rounded-2xl cursor-pointer hover:border-indigo-100 hover:bg-indigo-50/30 transition-all group";
-        
-        // Note: opacity-0 au lieu de hidden pour éviter l'erreur "not focusable"
         label.innerHTML = `
             <input type="radio" name="answer" value="${index}" class="absolute opacity-0 w-0 h-0 peer" required>
             <div class="w-5 h-5 border-2 border-slate-300 rounded-full flex items-center justify-center peer-checked:border-indigo-500 peer-checked:bg-indigo-500 transition-all mr-4">
@@ -119,7 +89,7 @@ function renderQuiz(data) {
         container.appendChild(label);
     });
 
-    // 4. Gestion de la soumission
+    // 3. Gestion de la soumission
     document.getElementById('quiz-form').onsubmit = async (e) => {
         e.preventDefault();
         const submitBtn = document.getElementById('submit-btn');
@@ -135,7 +105,6 @@ function renderQuiz(data) {
             is_correct: isCorrect
         };
 
-        // Appelle la fonction d'affichage des résultats (définie ailleurs dans app.js)
         displayResults(isCorrect, data);
 
         try {
@@ -146,10 +115,28 @@ function renderQuiz(data) {
                 body: JSON.stringify(logData)
             });
         } catch (err) {
-            console.warn("Telemetry log failed.");
+            console.warn("Log non envoyé au tableur.");
         }
     };
 }
 
-// Start the app
+/**
+ * Affichage des résultats
+ */
+function displayResults(isCorrect, data) {
+    const resDiv = document.getElementById('result');
+    resDiv.classList.remove('hidden');
+    resDiv.className = `mt-8 p-6 rounded-2xl border-2 animate-reveal ${isCorrect ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`;
+    
+    document.getElementById('result-icon').textContent = isCorrect ? "✨" : "🧐";
+    document.getElementById('result-text').textContent = isCorrect ? "Bravo !" : "Presque...";
+    document.getElementById('result-text').className = `font-bold text-lg ${isCorrect ? 'text-emerald-800' : 'text-rose-800'}`;
+    
+    const exp = data.explication;
+    document.getElementById('explanation').textContent = isCorrect ? 
+        (exp.explication_succes || exp) : (exp.explication_erreur || exp);
+    
+    document.getElementById('submit-btn').classList.add('hidden');
+}
+
 loadQuestion();
