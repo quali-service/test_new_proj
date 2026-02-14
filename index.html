@@ -132,14 +132,14 @@
             try {
                 const response = await fetch(`${SCRIPT_URL}?id=${questionId}&cache=${Date.now()}`);
                 const data = await response.json();
-                renderQuiz(data);
+                renderQuiz(data, questionId);
                 document.getElementById('progress-bar').style.width = '100%';
             } catch (err) {
                 document.getElementById('loading').innerHTML = `<p class="text-red-500">Erreur de chargement</p>`;
             }
         }
 
-        function renderQuiz(data) {
+        function renderQuiz(data,questionId) {
             document.getElementById('loading').classList.add('hidden');
             const content = document.getElementById('quiz-content');
             content.classList.remove('hidden');
