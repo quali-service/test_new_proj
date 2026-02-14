@@ -1,4 +1,4 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxkE29MV0DRYqIbxI4XrstFVq-8fN9fd70w72T4lXMolDt7jZbd6WDKlPvHihZa-GAIkQ/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxD5gTbUqZmTjVxvW7iO9h96VudY8LZLs-MKVlkizU5I-3GbntaLTJxgRWdj86TeZqQXA/exec";
 
 // Global state
 let currentQuestionId = null;
@@ -82,6 +82,14 @@ function renderQuiz(data) {
         const label = document.createElement('label');
         label.className = "flex items-center p-4 border-2 border-slate-100 rounded-2xl cursor-pointer hover:border-indigo-100 hover:bg-indigo-50/30 transition-all group";
         label.innerHTML = `
+        const statsHtml = `
+    <div class="flex items-center gap-2 mt-2 mb-6">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Taux de réussite :</span>
+        <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div class="h-full bg-amber-400" style="width: ${data.global_stats.success_rate}%"></div>
+        </div>
+        <span class="text-[10px] font-bold text-slate-500">${data.global_stats.success_rate}%</span>
+    </div>
             <input type="radio" name="answer" value="${index}" class="hidden peer" required>
             <div class="w-5 h-5 border-2 border-slate-300 rounded-full flex items-center justify-center peer-checked:border-indigo-500 peer-checked:bg-indigo-500 transition-all mr-4">
                 <div class="w-1.5 h-1.5 bg-white rounded-full scale-0 peer-checked:scale-100 transition-transform"></div>
