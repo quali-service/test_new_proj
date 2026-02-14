@@ -22,33 +22,48 @@ async function loadQuestion() {
     const urlParams = new URLSearchParams(window.location.search);
     currentQuestionId = urlParams.get('id');
 
-    if (!currentQuestionId) {
+    // 1. Si l'ID est manquant, nul ou n'est pas un nombre
+    if (!currentQuestionId || isNaN(currentQuestionId)) {
+        console.log("ID invalide ou absent. Recherche du maximum...");
         try {
             const res = await fetch(`${SCRIPT_URL}?action=getMax`);
             const data = await res.json();
-            // Sécurité : si data.max est invalide, on force à 2
-const maxRow = parseInt(data.max) || 2; 
-const minRow = 2;
+            
+            // Sécurité : on s'assure que data.max est un nombre
+            const max = parseInt(data.max);
+            if (isNaN(max)) throw new Error("Max n'est pas un nombre");
 
-// Calcul robuste
-const randomId = maxRow > minRow 
-    ? Math.floor(Math.random() * (maxRow - minRow + 1)) + minRow 
-    : minRow;
+            const randomId = Math.floor(Math.random() * (max - 2 + 1)) + 2;
+            
+            // On redirige proprement
             window.location.search = `?id=${randomId}`;
+            return;
         } catch (e) {
-            console.error("Redirect logic failed:", e);
+            console.error("Erreur lors de la génération aléatoire:", e);
+            // Fallback : on force l'ID 2 si tout échoue
             window.location.search = `?id=2`;
+            return;
         }
-        return;
     }
 
+    // 2. Si on arrive ici, l'ID est valide
+    console.log("ID valide détecté :", currentQuestionId);
+    
     try {
         const response = await fetch(`${SCRIPT_URL}?id=${currentQuestionId}&cache=${Date.now()}`);
         const data = await response.json();
+        
+        // Vérification si Google a renvoyé une erreur
+        if (data.error) {
+            document.getElementById('loading').innerHTML = `<p class="text-amber-600">Erreur : ${data.error}</p>`;
+            return;
+        }
+
         renderQuiz(data);
         document.getElementById('progress-bar').style.width = '100%';
     } catch (err) {
-        document.getElementById('loading').innerHTML = `<p class="text-red-500 font-bold">Erreur de chargement</p>`;
+        console.error("Erreur de fetch question:", err);
+        document.getElementById('loading').innerHTML = `<p class="text-red-500 font-bold">Question introuvable</p>`;
     }
 }
 
