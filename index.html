@@ -93,7 +93,9 @@
     </main>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxS1AiF9YIkNRtx6jNEHktZlTURrjbkxREgqj1v2CYc7mynfqHw0hgYXdoC-m1I1cAv2A/exec";
+        // new script: https://script.google.com/macros/s/AKfycbxkE29MV0DRYqIbxI4XrstFVq-8fN9fd70w72T4lXMolDt7jZbd6WDKlPvHihZa-GAIkQ/exec
+        //old script https://script.google.com/macros/s/AKfycbxS1AiF9YIkNRtx6jNEHktZlTURrjbkxREgqj1v2CYc7mynfqHw0hgYXdoC-m1I1cAv2A/exec
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxkE29MV0DRYqIbxI4XrstFVq-8fN9fd70w72T4lXMolDt7jZbd6WDKlPvHihZa-GAIkQ/exec";
 
         // TAB NAVIGATION LOGIC
         function showSection(sectionId) {
@@ -158,18 +160,50 @@
                 container.appendChild(label);
             });
 
-            document.getElementById('quiz-form').onsubmit = (e) => {
-                e.preventDefault();
-                const userAns = parseInt(new FormData(e.target).get('answer'));
-                const isCorrect = userAns === data.reponse_correcte;
-                const resDiv = document.getElementById('result');
-                resDiv.classList.remove('hidden');
-                resDiv.className = isCorrect ? "mt-8 p-6 rounded-2xl bg-emerald-50 border-emerald-100 animate-reveal" : "mt-8 p-6 rounded-2xl bg-rose-50 border-rose-100 animate-reveal";
-                document.getElementById('result-icon').textContent = isCorrect ? "✨" : "🧐";
-                document.getElementById('result-text').textContent = isCorrect ? "Bravo !" : "Presque...";
-                document.getElementById('explanation').textContent = isCorrect ? (data.explication.explication_succes || data.explication) : (data.explication.explication_erreur || data.explication);
-                document.getElementById('submit-btn').classList.add('hidden');
-            };
+            document.getElementById('quiz-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const userAns = parseInt(new FormData(e.target).get('answer'));
+    const isCorrect = userAns === data.reponse_correcte;
+
+    // 1. Prepare the data to send back
+    const logData = {
+        question_id: questionId, // This variable is already defined in your loadQuestion()
+        result: userAns,
+        is_correct: isCorrect
+    };
+
+    // 2. Show UI feedback immediately
+    showResultUI(isCorrect, data); // (I'll extract your UI logic to a function below)
+
+    // 3. Send to Google Sheets (Hidden from user)
+    try {
+        await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors', // Essential for Apps Script POST
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(logData)
+        });
+        console.log("Log sent to spreadsheet successfully");
+    } catch (err) {
+        console.error("Failed to log answer:", err);
+    }
+};
+
+// Helper function to keep code clean
+function showResultUI(isCorrect, data) {
+    const resDiv = document.getElementById('result');
+    resDiv.classList.remove('hidden');
+    resDiv.className = isCorrect ? "mt-8 p-6 rounded-2xl bg-emerald-50 border-emerald-100 animate-reveal" : "mt-8 p-6 rounded-2xl bg-rose-50 border-rose-100 animate-reveal";
+    
+    document.getElementById('result-icon').textContent = isCorrect ? "✨" : "🧐";
+    document.getElementById('result-text').textContent = isCorrect ? "Bravo !" : "Presque...";
+    
+    const exp = data.explication;
+    document.getElementById('explanation').textContent = isCorrect ? 
+        (exp.explication_succes || exp) : (exp.explication_erreur || exp);
+    
+    document.getElementById('submit-btn').classList.add('hidden');
+}
         }
 
         loadQuestion();
