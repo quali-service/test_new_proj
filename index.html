@@ -342,6 +342,49 @@
 
     </main>
 
+    </main>
+
+    <div id="highlight-modal" class="fixed inset-0 z-[100] hidden flex items-end sm:items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-lg rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden translate-y-0 transition-transform">
+            <div class="p-6 sm:p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-slate-800">Transformer en ressource</h3>
+                    <button onclick="closeHighlightModal()" class="text-slate-400 hover:text-rose-500 p-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Note / Apprentissage</label>
+                        <textarea id="modal-learning-text" rows="5" 
+                            class="w-full p-4 rounded-2xl border-2 border-slate-50 bg-slate-50 focus:bg-white focus:border-indigo-500 outline-none transition-all text-sm text-slate-700 leading-relaxed"
+                            placeholder="Modifiez l'extrait ou ajoutez vos propres réflexions..."></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Nature de l'œuvre</label>
+                        <select id="modal-nature" class="w-full p-4 rounded-2xl border-2 border-slate-50 bg-slate-50 outline-none text-sm font-medium appearance-none">
+                            <option value="Livre">Livre (Général)</option>
+                            <option value="Extrait">Extrait Important</option>
+                            <option value="Citation">Citation</option>
+                            <option value="Concept">Concept Clé</option>
+                        </select>
+                    </div>
+
+                    <button id="modal-save-btn" class="w-full py-4 bg-slate-900 text-white font-black rounded-2xl shadow-lg hover:bg-indigo-600 active:scale-95 transition-all">
+                        Enregistrer la fiche
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="reader.js"></script>
+    <script src="app.js"></script>
+</body>
 
 
     <script src="reader.js"></script>
