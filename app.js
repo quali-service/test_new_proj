@@ -92,6 +92,10 @@ async function loadEbooks() {
 window.loadEbooks = loadEbooks;
 
 window.openReader = function(url, title) {
+    console.log("--- 🏁 Début de l'ouverture du lecteur ---");
+    console.log("📂 URL du fichier :", url);
+    console.log("📖 Titre :", title);
+
     const grid = document.getElementById('ebook-grid');
     const container = document.getElementById('reader-container');
     const viewer = document.getElementById('pdf-viewer');
@@ -103,10 +107,27 @@ window.openReader = function(url, title) {
     readerTitle.textContent = title;
 
     if (url.toLowerCase().endsWith('.epub')) {
+        console.log("🔍 Format détecté : EPUB");
+        
+        // 1. Vérification de la bibliothèque
         if (typeof ePub === 'undefined') {
+            console.error("❌ ERREUR : La bibliothèque ePub.js n'est pas chargée dans le HTML !");
             alert("Erreur: Bibliothèque ePub.js non chargée.");
             return;
         }
+
+        // 2. Test de l'existence réelle du fichier (Pre-fetch check)
+        console.log("⏳ Vérification de l'existence du fichier sur le serveur...");
+        fetch(url, { method: 'HEAD' })
+            .then(res => {
+                if (res.ok) {
+                    console.log("✅ Fichier trouvé ! (Status:", res.status, ")");
+                } else {
+                    console.error("❌ Fichier introuvable ou inaccessible ! (Status:", res.status, ")");
+                    console.warn("👉 Vérifiez les permissions du bucket 'ebooks' dans Supabase.");
+                }
+            })
+            .catch(err => console.error("❌ Erreur réseau lors de la vérification :", err));
 
         viewer.classList.add('hidden');
         if (epubNav) epubNav.classList.remove('hidden');
@@ -121,6 +142,8 @@ window.openReader = function(url, title) {
         epubCont.classList.remove('hidden');
         epubCont.innerHTML = ""; 
 
+        // 3. Initialisation du rendu
+        console.log("⚙️ Initialisation du moteur ePub.js...");
         const book = ePub(url);
         window.rendition = book.renderTo("epub-viewer", {
             width: "100%",
@@ -129,12 +152,21 @@ window.openReader = function(url, title) {
             manager: "default"
         });
 
-        window.rendition.display().then(() => {
-            console.log("📖 Livre affiché avec succès");
-        }).catch(err => console.error("Erreur rendu:", err));
+        window.rendition.display()
+            .then(() => {
+                console.log("✨ SUCCÈS : Le contenu du livre est affiché.");
+            })
+            .catch(err => {
+                console.error("❌ ERREUR de rendu ePub.js :");
+                console.dir(err); // Affiche l'objet d'erreur complet
+                if (err.message && err.message.includes('CORS')) {
+                    console.warn("🚨 Problème de CORS détecté ! Le serveur refuse l'accès au contenu du fichier.");
+                }
+            });
 
         window.addEventListener("keydown", handleKeyNav);
     } else {
+        console.log("🔍 Format détecté : Autre (PDF ou URL)");
         document.getElementById('epub-viewer')?.classList.add('hidden');
         if (epubNav) epubNav.classList.add('hidden');
         viewer.classList.remove('hidden');
