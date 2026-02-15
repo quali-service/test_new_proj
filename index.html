@@ -130,6 +130,17 @@
                 <span>🔄</span> Tirer une autre question
             </button>
         </section>
+        <section id="ebook-section" class="hidden p-6">
+    <h2 class="text-2xl font-bold mb-6 text-slate-800">Ma Bibliothèque</h2>
+    
+    <div id="ebook-grid" class="grid grid-cols-2 md:grid-cols-4 gap-6">
+        </div>
+
+    <div id="reader-container" class="hidden mt-8">
+        <button onclick="closeReader()" class="mb-4 text-indigo-600 font-bold">← Retour à la bibliothèque</button>
+        <iframe id="pdf-viewer" class="w-full h-[800px] border-2 border-slate-200 rounded-2xl"></iframe>
+    </div>
+</section>
     </main>
 
     <script src="app.js"></script>
