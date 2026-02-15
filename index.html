@@ -26,12 +26,73 @@
     <main class="lg:ml-64 p-4 pb-24 lg:pb-8 min-h-screen flex items-center justify-center">
         
         <section id="form-section" class="hidden w-full max-w-3xl animate-reveal">
-            <div class="glass-card rounded-[2rem] shadow-xl p-4 sm:p-8">
-                <h2 class="text-2xl font-bold mb-6 text-center text-slate-800">Ajouter une Question</h2>
-                <div class="rounded-2xl overflow-hidden border border-slate-100 shadow-inner bg-white">
-                    <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdcayDeZmzKfHEckHRA_Rr3qtcxAn5WauJirUTbtz221cySsw/viewform?embedded=true" width="100%" height="600" frameborder="0">Chargement…</iframe>
-                </div>
+            <div id="admin-form-container" class="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-3xl shadow-xl border border-slate-100">
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold text-slate-800">Ajouter une Ressource</h2>
+        <p class="text-slate-500 text-sm">Remplissez les détails pour enrichir la base de données.</p>
+    </div>
+
+    <form id="supabase-admin-form" class="space-y-6">
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-2">Titre de l'œuvre</label>
+            <input type="text" name="titre" required 
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all placeholder:text-slate-400" 
+                placeholder="Ex: L'État-nation et ses enjeux...">
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-3">Nature de l'œuvre</label>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <label class="cursor-pointer">
+                    <input type="radio" name="nature" value="Livre" class="peer hidden" required>
+                    <div class="text-center p-3 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Livre</div>
+                </label>
+                <label class="cursor-pointer">
+                    <input type="radio" name="nature" value="Revue" class="peer hidden">
+                    <div class="text-center p-3 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Revue</div>
+                </label>
+                <label class="cursor-pointer">
+                    <input type="radio" name="nature" value="Film" class="peer hidden">
+                    <div class="text-center p-3 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Film</div>
+                </label>
+                <label class="cursor-pointer">
+                    <input type="radio" name="nature" value="Série" class="peer hidden">
+                    <div class="text-center p-3 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Série</div>
+                </label>
+                <label class="cursor-pointer">
+                    <input type="radio" name="nature" value="Conférence" class="peer hidden">
+                    <div class="text-center p-3 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Conférence</div>
+                </label>
+                <label class="cursor-pointer">
+                    <input type="radio" name="nature" value="Étude" class="peer hidden">
+                    <div class="text-center p-3 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Étude</div>
+                </label>
             </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-2">Apprentissage (Résumé/Notes)</label>
+            <textarea name="apprentissage" rows="4" required
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all placeholder:text-slate-400" 
+                placeholder="Qu'avez-vous retenu d'essentiel ?"></textarea>
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-2">URL de la source</label>
+            <input type="url" name="url" 
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all placeholder:text-slate-400" 
+                placeholder="https://example.com/...">
+        </div>
+
+        <button type="submit" id="form-submit-btn" 
+            class="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-indigo-600 transform active:scale-[0.98] transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2">
+            <span>Enregistrer dans Supabase</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+            </svg>
+        </button>
+    </form>
+</div>
         </section>
 
         <section id="quiz-section" class="w-full max-w-lg animate-reveal">
