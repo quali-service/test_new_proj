@@ -9,22 +9,25 @@ const HEADERS = {
     'Content-Type': 'application/json'
 };
 
-function toggleAddEbookForm() {
+// Remplace "function toggleAddEbookForm() {" par ceci :
+window.toggleAddEbookForm = function() {
     const container = document.getElementById('add-ebook-container');
     const icon = document.getElementById('toggle-icon');
     const text = document.getElementById('toggle-text');
     
+    if (!container) return; // Sécurité si l'élément n'existe pas
+
     const isHidden = container.classList.contains('hidden');
     
     container.classList.toggle('hidden');
-    icon.textContent = isHidden ? "✖" : "➕";
-    text.textContent = isHidden ? "Fermer" : "Ajouter un livre";
     
-    // Si on ferme, on scrolle un peu vers le haut
+    if (icon) icon.textContent = isHidden ? "✖" : "➕";
+    if (text) text.textContent = isHidden ? "Fermer" : "Ajouter un livre";
+    
     if (!isHidden) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-}
+};
 
 /**
  * 1. UI DISPLAY & NAVIGATION
@@ -183,46 +186,49 @@ function closeReader() {
 }
 
 /**
- * 4. ADMIN FORM LOGIC
+ * 4. ADMIN FORMS LOGIC (Resources & Ebooks)
  */
-document.getElementById('supabase-admin-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('form-submit-btn');
-    const formData = new FormData(e.target);
-    
-    const payload = {
-        title: formData.get('titre'),
-        type: formData.get('nature'),
-        learning: formData.get('apprentissage'),
-        source_url: formData.get('url'),
-        created_at: new Date().toISOString()
-    };
-
-    btn.disabled = true;
-    btn.innerHTML = "Génération de la question par l'IA...";
-
-    try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/ressources`, {
-            method: 'POST',
-            headers: { ...HEADERS, 'Prefer': 'return=minimal' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) throw new Error('Erreur Supabase');
-
-        alert("✅ Données envoyées ! Gemini prépare la question...");
-        e.target.reset();
-        
-    } catch (err) {
-        alert("❌ Erreur lors de l'envoi.");
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = "Enregistrer dans Supabase";
-    }
-});
-
-// On attend que le DOM soit chargé pour lier le formulaire
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Formulaire 1 : Ressources ---
+    const resourceForm = document.getElementById('supabase-admin-form');
+    if (resourceForm) {
+        resourceForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('form-submit-btn');
+            const formData = new FormData(e.target);
+            
+            const payload = {
+                title: formData.get('titre'),
+                type: formData.get('nature'),
+                learning: formData.get('apprentissage'),
+                source_url: formData.get('url'),
+                created_at: new Date().toISOString()
+            };
+
+            btn.disabled = true;
+            btn.innerHTML = "Génération par l'IA...";
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/ressources`, {
+                    method: 'POST',
+                    headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error('Erreur Supabase');
+
+                alert("✅ Ressource ajoutée ! Gemini prépare la question...");
+                e.target.reset();
+            } catch (err) {
+                alert("❌ Erreur lors de l'envoi.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = "Enregistrer dans Supabase";
+            }
+        });
+    }
+
+    // --- Formulaire 2 : Ebooks ---
     const ebookForm = document.getElementById('ebook-admin-form');
     if (ebookForm) {
         ebookForm.addEventListener('submit', async (e) => {
@@ -240,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             btn.disabled = true;
-            btn.innerHTML = "Connexion à Supabase...";
+            btn.innerHTML = "Connexion...";
 
             try {
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/ebooks`, {
@@ -251,13 +257,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (!response.ok) throw new Error('Erreur');
 
-                // Succès : Confettis et rafraîchissement
                 if (typeof confetti === 'function') confetti({ particleCount: 50, origin: { y: 0.8 } });
                 
                 e.target.reset();
-                toggleAddEbookForm(); // Ferme le formulaire
-                loadEbooks(); // Recharge la liste
-                
+                window.toggleAddEbookForm(); // On utilise la version window
+                loadEbooks(); 
             } catch (err) {
                 alert("Erreur lors de l'enregistrement.");
             } finally {
@@ -266,8 +270,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-});
-
 // INITIALISATION SÉCURISÉE
 document.addEventListener('DOMContentLoaded', () => {
     // On affiche la section par défaut
