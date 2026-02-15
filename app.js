@@ -99,29 +99,26 @@ window.openReader = function(url, title) {
     if (url.toLowerCase().endsWith('.epub')) {
         viewer.classList.add('hidden');
         if (epubNav) epubNav.classList.remove('hidden');
+        
         if (epubCont) {
             epubCont.classList.remove('hidden');
-            epubCont.innerHTML = "<div class='flex flex-col items-center justify-center h-full'><div class='animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4'></div><p class='text-slate-500 italic'>Chargement de votre expérience Kindle...</p></div>";
+            epubCont.innerHTML = "<div class='flex items-center justify-center h-full'><p class='animate-pulse'>Chargement...</p></div>";
         }
 
-        // Téléchargement sécurisé et initialisation via Reader.js
         fetch(url, { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } })
-            .then(res => {
-                if (!res.ok) throw new Error("Accès au fichier refusé.");
-                return res.arrayBuffer();
-            })
+            .then(res => res.arrayBuffer())
             .then(data => {
                 if (epubCont) epubCont.innerHTML = ""; 
-                // Initialisation du module reader.js avec le titre pour la mémoire de page
-                if (window.Reader) {
-                    window.Reader.init(data, "epub-viewer", title);
-                }
+                // CRUCIAL : On attend que le navigateur ait calculé la taille du div
+                setTimeout(() => {
+                    if (window.Reader) {
+                        window.Reader.init(data, "epub-viewer", title);
+                    }
+                }, 100);
             })
             .catch(err => {
-                console.error("❌ Erreur Reader :", err);
-                if (epubCont) epubCont.innerHTML = `<div class='p-10 text-center text-rose-500'>${err.message}</div>`;
+                console.error("Erreur Reader :", err);
             });
-
     } else {
         if (epubCont) epubCont.classList.add('hidden');
         if (epubNav) epubNav.classList.add('hidden');
@@ -129,7 +126,6 @@ window.openReader = function(url, title) {
         viewer.src = url;
     }
 };
-
 window.closeReader = function() {
     document.getElementById('ebook-grid').classList.remove('hidden');
     document.getElementById('reader-container').classList.add('hidden');
