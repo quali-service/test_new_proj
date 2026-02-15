@@ -9,6 +9,23 @@ const HEADERS = {
     'Content-Type': 'application/json'
 };
 
+function toggleAddEbookForm() {
+    const container = document.getElementById('add-ebook-container');
+    const icon = document.getElementById('toggle-icon');
+    const text = document.getElementById('toggle-text');
+    
+    const isHidden = container.classList.contains('hidden');
+    
+    container.classList.toggle('hidden');
+    icon.textContent = isHidden ? "✖" : "➕";
+    text.textContent = isHidden ? "Fermer" : "Ajouter un livre";
+    
+    // Si on ferme, on scrolle un peu vers le haut
+    if (!isHidden) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
 /**
  * 1. UI DISPLAY & NAVIGATION
  */
@@ -204,5 +221,58 @@ document.getElementById('supabase-admin-form').addEventListener('submit', async 
     }
 });
 
-// INITIALISATION
-showSection('form-section');
+// On attend que le DOM soit chargé pour lier le formulaire
+document.addEventListener('DOMContentLoaded', () => {
+    const ebookForm = document.getElementById('ebook-admin-form');
+    if (ebookForm) {
+        ebookForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('ebook-submit-btn');
+            const formData = new FormData(e.target);
+            
+            const payload = {
+                title: formData.get('title'),
+                author: formData.get('author'),
+                category: formData.get('category'),
+                cover_url: formData.get('cover_url'),
+                file_url: formData.get('file_url'),
+                created_at: new Date().toISOString()
+            };
+
+            btn.disabled = true;
+            btn.innerHTML = "Connexion à Supabase...";
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/ebooks`, {
+                    method: 'POST',
+                    headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error('Erreur');
+
+                // Succès : Confettis et rafraîchissement
+                if (typeof confetti === 'function') confetti({ particleCount: 50, origin: { y: 0.8 } });
+                
+                e.target.reset();
+                toggleAddEbookForm(); // Ferme le formulaire
+                loadEbooks(); // Recharge la liste
+                
+            } catch (err) {
+                alert("Erreur lors de l'enregistrement.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = "Enregistrer dans la bibliothèque";
+            }
+        });
+    }
+});
+
+// INITIALISATION SÉCURISÉE
+document.addEventListener('DOMContentLoaded', () => {
+    // On affiche la section par défaut
+    showSection('form-section');
+    
+    // Log pour confirmer le démarrage
+    console.log("🚀 App Quiz & Library initialisée avec succès.");
+});
