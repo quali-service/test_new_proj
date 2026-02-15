@@ -1,4 +1,4 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxkE29MV0DRYqIbxI4XrstFVq-8fN9fd70w72T4lXMolDt7jZbd6WDKlPvHihZa-GAIkQ/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxD5gTbUqZmTjVxvW7iO9h96VudY8LZLs-MKVlkizU5I-3GbntaLTJxgRWdj86TeZqQXA/exec";
 
 // Global State
 let currentQuestionId = null;
