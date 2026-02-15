@@ -1,5 +1,5 @@
-// app.js - Gestionnaire principal (UI, Supabase, Quiz)
-console.log("🚀 App.js chargé ! Prêt à orchestrer.");
+// app.js - Gestionnaire principal (UI, Supabase, Quiz, Intégration Reader)
+console.log("🚀 App.js prêt à orchestrer l'expérience.");
 
 // --- 1. CONFIGURATION SUPABASE ---
 const SUPABASE_URL = "https://spxrksdfcasapbhfrjfb.supabase.co";
@@ -47,7 +47,7 @@ window.toggleAddEbookForm = function() {
     document.getElementById('toggle-text').textContent = isHidden ? "Fermer" : "Ajouter un livre";
 };
 
-// --- 3. LOGIQUE EBOOK (Chargement & Lecteur) ---
+// --- 3. LOGIQUE EBOOK (Chargement & Intégration Reader.js) ---
 
 async function loadEbooks() {
     const grid = document.getElementById('ebook-grid');
@@ -101,7 +101,7 @@ window.openReader = function(url, title) {
         if (epubNav) epubNav.classList.remove('hidden');
         if (epubCont) {
             epubCont.classList.remove('hidden');
-            epubCont.innerHTML = "<div class='flex flex-col items-center justify-center h-full'><div class='animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4'></div><p class='text-slate-500 italic'>Préparation de votre Kindle experience...</p></div>";
+            epubCont.innerHTML = "<div class='flex flex-col items-center justify-center h-full'><div class='animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4'></div><p class='text-slate-500 italic'>Chargement de votre expérience Kindle...</p></div>";
         }
 
         // Téléchargement sécurisé et initialisation via Reader.js
@@ -112,8 +112,10 @@ window.openReader = function(url, title) {
             })
             .then(data => {
                 if (epubCont) epubCont.innerHTML = ""; 
-                // Appel au module dédié reader.js
-                Reader.init(data, "epub-viewer");
+                // Initialisation du module reader.js avec le titre pour la mémoire de page
+                if (window.Reader) {
+                    window.Reader.init(data, "epub-viewer", title);
+                }
             })
             .catch(err => {
                 console.error("❌ Erreur Reader :", err);
@@ -121,7 +123,6 @@ window.openReader = function(url, title) {
             });
 
     } else {
-        // Logique PDF classique
         if (epubCont) epubCont.classList.add('hidden');
         if (epubNav) epubNav.classList.add('hidden');
         viewer.classList.remove('hidden');
@@ -140,7 +141,29 @@ window.closeReader = function() {
     }
 };
 
-// --- 4. LOGIQUE QUIZ ---
+// --- 4. SAUVEGARDE DES RESSOURCES (Appelé par Reader.js) ---
+
+window.saveResourceToSupabase = async function(payload) {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/ebooks`, {
+            method: 'POST',
+            headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error("Erreur lors de l'enregistrement Supabase");
+        
+        // Effet visuel
+        if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        return true;
+    } catch (err) {
+        console.error("❌ Erreur :", err);
+        alert("Impossible de sauvegarder la fiche.");
+        return false;
+    }
+};
+
+// --- 5. LOGIQUE QUIZ ---
 
 window.loadQuestion = async function() {
     const loading = document.getElementById('loading');
@@ -210,10 +233,9 @@ function displayResults(isCorrect, explanation) {
     document.getElementById('submit-btn').classList.add('hidden');
 }
 
-// --- 5. INITIALISATION ---
+// --- 6. INITIALISATION ---
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Gestionnaire ajout Ebook
     const ebookForm = document.getElementById('ebook-admin-form');
     if (ebookForm) {
         ebookForm.addEventListener('submit', async (e) => {
