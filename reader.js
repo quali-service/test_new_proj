@@ -1,9 +1,11 @@
-// reader.js - Expérience Kindle & Capture de Ressources
+/**
+ * reader.js - Logique de lecture ePub (Kindle Style) & Capture de notes
+ */
 const Reader = {
     book: null,
     rendition: null,
     currentBookTitle: null,
-    tempCfiRange: null, // Stocke la sélection temporairement
+    tempCfiRange: null,
 
     settings: {
         baseStyles: {
@@ -19,15 +21,18 @@ const Reader = {
     },
 
     /**
-     * Initialisation du lecteur
-     * @param {ArrayBuffer} data - Le contenu du fichier ePub
-     * @param {string} containerId - L'ID de la div HTML
-     * @param {string} bookTitle - Le titre du livre (pour la mémoire locale)
+     * Initialise ou réinitialise le lecteur
      */
     init: function(data, containerId, bookTitle) {
+        // 1. Nettoyage de l'ancienne instance pour éviter les fuites de mémoire
+        if (this.book) {
+            try { this.book.destroy(); } catch(e) { console.log("Ancienne instance nettoyée"); }
+        }
+
         this.currentBookTitle = bookTitle;
         this.book = ePub(data);
         
+        // 2. Configuration du rendu
         this.rendition = this.book.renderTo(containerId, {
             width: "100%",
             height: "100%",
@@ -35,108 +40,117 @@ const Reader = {
             manager: "default"
         });
 
-        // 1. Appliquer le look Kindle
+        // 3. Application du thème Kindle
         this.rendition.themes.register("kindle", this.settings.baseStyles);
         this.rendition.themes.select("kindle");
 
-        // 2. Charger la dernière position sauvegardée
+        // 4. Gestion de la position de lecture (LocalStorage)
         const savedLocation = localStorage.getItem(`reading-pos-${this.currentBookTitle}`);
         
-        // 3. Afficher le livre
-        this.rendition.display(savedLocation || undefined);
+        // 5. Affichage du livre
+        this.rendition.display(savedLocation || undefined).then(() => {
+            console.log(`📖 Livre chargé : ${this.currentBookTitle}`);
+        });
 
-        // 4. Activer les écouteurs d'événements
+        // 6. Activation des fonctionnalités
         this.setupEventListeners();
-        
-        console.log(`📖 Reader prêt : ${this.currentBookTitle}`);
     },
 
     setupEventListeners: function() {
-        // --- SAUVEGARDE DE LA POSITION ---
+        if (!this.rendition) return;
+
+        // SAUVEGARDE AUTO DE LA POSITION
         this.rendition.on("relocated", (location) => {
             if (location.start) {
                 localStorage.setItem(`reading-pos-${this.currentBookTitle}`, location.start.cfi);
                 
-                // Mise à jour du pourcentage de progression
+                // Mise à jour du % en bas de l'écran
                 const percent = Math.round(location.start.percentage * 100);
                 const label = document.getElementById("page-percent");
                 if (label) label.textContent = `${percent}%`;
             }
         });
 
-        // --- NAVIGATION PAR CLIC (KINDLE STYLE) ---
+        // NAVIGATION PAR ZONE DE CLIC (Gauche 30% = Précédent | Droite 70% = Suivant)
         this.rendition.on("click", (e) => {
             const x = e.clientX;
             const width = window.innerWidth;
-            // Zone de 30% à gauche pour précédent, le reste pour suivant
             if (x < width * 0.3) this.prev();
             else this.next();
         });
 
-        // --- SÉLECTION DE TEXTE & MODAL ---
+        // CAPTURE DE SÉLECTION (Surlignage)
         this.rendition.on("selected", (cfiRange, contents) => {
             const range = this.book.getRange(cfiRange);
             const selectedText = range.toString().trim();
 
             if (selectedText.length > 5) {
                 this.tempCfiRange = cfiRange;
-                window.openHighlightModal(selectedText);
+                if (window.openHighlightModal) {
+                    window.openHighlightModal(selectedText);
+                }
             }
-            
-            // On désélectionne le texte (le bleu disparaît) pour préparer le futur highlight
+            // Nettoie la sélection native bleue pour laisser place au futur highlight jaune
             contents.window.getSelection().removeAllRanges();
         });
 
-        // --- NAVIGATION CLAVIER ---
+        // NAVIGATION CLAVIER
         this.rendition.on("keyup", (e) => {
             if (e.key === "ArrowLeft") this.prev();
             if (e.key === "ArrowRight") this.next();
         });
     },
 
-    next: function() { this.rendition.next(); },
-    prev: function() { this.rendition.prev(); }
+    next: function() { 
+        if (this.rendition) this.rendition.next(); 
+    },
+    
+    prev: function() { 
+        if (this.rendition) this.rendition.prev(); 
+    }
 };
 
-// --- FONCTIONS DU MODAL (EXPOSÉES GLOBALEMENT) ---
-
+/**
+ * LOGIQUE DU MODAL DE CAPTURE
+ */
 window.openHighlightModal = function(text) {
     const modal = document.getElementById('highlight-modal');
     const textArea = document.getElementById('modal-learning-text');
-    const modalContent = modal.querySelector('div');
-
     if (!modal || !textArea) return;
 
     textArea.value = text;
     modal.classList.remove('hidden');
-    modalContent.classList.add('animate-slide-up');
 
-    // Configuration dynamique du bouton d'enregistrement
     const saveBtn = document.getElementById('modal-save-btn');
-    saveBtn.onclick = async () => {
-        saveBtn.disabled = true;
-        saveBtn.textContent = "Enregistrement...";
+    if (saveBtn) {
+        saveBtn.onclick = async () => {
+            saveBtn.disabled = true;
+            saveBtn.textContent = "⏳ Enregistrement...";
 
-        const payload = {
-            titre: `Note : ${Reader.currentBookTitle}`,
-            nature: document.getElementById('modal-nature').value,
-            apprentissage: textArea.value,
-            url: window.location.href,
-            created_at: new Date().toISOString()
+            const payload = {
+                titre: `Extrait : ${Reader.currentBookTitle}`,
+                nature: document.getElementById('modal-nature')?.value || "Livre",
+                apprentissage: textArea.value,
+                url: window.location.href,
+                created_at: new Date().toISOString()
+            };
+
+            // Appel à la fonction de app.js
+            const success = await window.saveResourceToSupabase(payload);
+
+            if (success) {
+                // Ajout visuel du surlignage jaune type "stabilo"
+                Reader.rendition.annotations.add("highlight", Reader.tempCfiRange, {}, (e) => {
+                    console.log("Highlight cliqué");
+                }, "hl-class", {"fill": "yellow", "fill-opacity": "0.3", "mix-blend-mode": "multiply"});
+                
+                window.closeHighlightModal();
+            }
+            
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Enregistrer la fiche";
         };
-
-        // On appelle la fonction de sauvegarde définie dans app.js
-        const success = await window.saveResourceToSupabase(payload);
-
-        if (success) {
-            // Ajouter visuellement le surlignage jaune dans le livre
-            Reader.rendition.annotations.add("highlight", Reader.tempCfiRange, {}, (e) => {});
-            window.closeHighlightModal();
-        }
-        
-        saveBtn.disabled = false;
-        saveBtn.textContent = "Enregistrer la fiche";
-    };
+    }
 };
 
 window.closeHighlightModal = function() {
@@ -145,6 +159,6 @@ window.closeHighlightModal = function() {
     Reader.tempCfiRange = null;
 };
 
-// --- EXPOSITION DES COMMANDES DE NAVIGATION ---
+// Fonctions globales pour les boutons HTML (index.html)
 window.nextPage = () => Reader.next();
 window.prevPage = () => Reader.prev();
