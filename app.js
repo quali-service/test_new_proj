@@ -140,5 +140,24 @@ document.getElementById('supabase-admin-form').addEventListener('submit', async 
     }
 });
 
+function showSection(sectionId) {
+    // Liste de toutes tes sections
+    const sections = ['form-section', 'quiz-section', 'ebook-section'];
+    
+    sections.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('hidden', id !== sectionId);
+    });
+
+    // Gestion de l'état "actif" des boutons de nav
+    document.getElementById('nav-form').classList.toggle('nav-active', sectionId === 'form-section');
+    document.getElementById('nav-quiz').classList.toggle('nav-active', sectionId === 'quiz-section');
+    document.getElementById('nav-ebook').classList.toggle('nav-active', sectionId === 'ebook-section');
+
+    // Charger les données spécifiques à la section
+    if (sectionId === 'quiz-section') loadQuestion();
+    if (sectionId === 'ebook-section') loadEbooks(); // <-- On charge les livres quand on ouvre l'onglet
+}
+
 // Start
 loadQuestion();
