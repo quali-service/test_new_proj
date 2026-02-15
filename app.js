@@ -22,6 +22,17 @@ function displayResults(isCorrect, data) {
     document.getElementById('result-icon').textContent = isCorrect ? "✨" : "🧐";
     document.getElementById('result-text').textContent = isCorrect ? "Bravo !" : "Presque...";
     document.getElementById('result-text').className = `font-bold text-lg ${isCorrect ? 'text-emerald-800' : 'text-rose-800'}`;
+
+    // --- EFFET CONFETTI ---
+    if (isCorrect) {
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#10b981', '#34d399', '#6ee7b7'] // Tons émeraudes
+        });
+    }
+    // -----------------------
     
     const exp = data.explication;
     document.getElementById('explanation').textContent = isCorrect ? 
