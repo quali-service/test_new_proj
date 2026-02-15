@@ -1,5 +1,5 @@
-console.log("🚀 Le fichier app.js est bien chargé !");
-window.JSZip = window.JSZip || undefined; // Force la visibilité globale
+// app.js - Gestionnaire principal (UI, Supabase, Quiz)
+console.log("🚀 App.js chargé ! Prêt à orchestrer.");
 
 // --- 1. CONFIGURATION SUPABASE ---
 const SUPABASE_URL = "https://spxrksdfcasapbhfrjfb.supabase.co";
@@ -10,8 +10,6 @@ const HEADERS = {
     'Authorization': `Bearer ${ANON_KEY}`,
     'Content-Type': 'application/json'
 };
-
-window.rendition = null;
 
 // --- 2. NAVIGATION & UI ---
 
@@ -49,7 +47,7 @@ window.toggleAddEbookForm = function() {
     document.getElementById('toggle-text').textContent = isHidden ? "Fermer" : "Ajouter un livre";
 };
 
-// --- 3. LOGIQUE EBOOK & LECTEUR ---
+// --- 3. LOGIQUE EBOOK (Chargement & Lecteur) ---
 
 async function loadEbooks() {
     const grid = document.getElementById('ebook-grid');
@@ -87,7 +85,6 @@ async function loadEbooks() {
 window.loadEbooks = loadEbooks;
 
 window.openReader = function(url, title) {
-    console.log("📖 Ouverture de :", title);
     const grid = document.getElementById('ebook-grid');
     const container = document.getElementById('reader-container');
     const viewer = document.getElementById('pdf-viewer');
@@ -104,34 +101,27 @@ window.openReader = function(url, title) {
         if (epubNav) epubNav.classList.remove('hidden');
         if (epubCont) {
             epubCont.classList.remove('hidden');
-            epubCont.innerHTML = "<div class='flex flex-col items-center justify-center h-full'><div class='animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4'></div><p class='text-slate-500'>Chargement sécurisé...</p></div>";
+            epubCont.innerHTML = "<div class='flex flex-col items-center justify-center h-full'><div class='animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4'></div><p class='text-slate-500 italic'>Préparation de votre Kindle experience...</p></div>";
         }
 
-        // 🛡️ CORRECTION 401 : On télécharge avec les headers d'autorisation
+        // Téléchargement sécurisé et initialisation via Reader.js
         fetch(url, { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } })
             .then(res => {
-                if (!res.ok) throw new Error("Accès refusé (401). Vérifiez vos permissions Storage.");
+                if (!res.ok) throw new Error("Accès au fichier refusé.");
                 return res.arrayBuffer();
             })
             .then(data => {
                 if (epubCont) epubCont.innerHTML = ""; 
-                const book = ePub(data);
-                window.rendition = book.renderTo("epub-viewer", {
-                    width: "100%",
-                    height: "100%",
-                    flow: "paginated",
-                    manager: "default"
-                });
-                window.rendition.display();
-                console.log("✨ Livre chargé avec succès via ArrayBuffer");
+                // Appel au module dédié reader.js
+                Reader.init(data, "epub-viewer");
             })
             .catch(err => {
-                console.error("❌ Erreur de lecture :", err);
-                if (epubCont) epubCont.innerHTML = `<div class='p-10 text-center text-rose-500 font-bold'>Impossible d'ouvrir le livre : ${err.message}</div>`;
+                console.error("❌ Erreur Reader :", err);
+                if (epubCont) epubCont.innerHTML = `<div class='p-10 text-center text-rose-500'>${err.message}</div>`;
             });
 
-        window.addEventListener("keydown", handleKeyNav);
     } else {
+        // Logique PDF classique
         if (epubCont) epubCont.classList.add('hidden');
         if (epubNav) epubNav.classList.add('hidden');
         viewer.classList.remove('hidden');
@@ -148,13 +138,7 @@ window.closeReader = function() {
         epubCont.innerHTML = "";
         epubCont.classList.add('hidden');
     }
-    window.removeEventListener("keydown", handleKeyNav);
 };
-
-function handleKeyNav(e) {
-    if (e.key === "ArrowLeft") window.rendition?.prev();
-    if (e.key === "ArrowRight") window.rendition?.next();
-}
 
 // --- 4. LOGIQUE QUIZ ---
 
@@ -229,6 +213,7 @@ function displayResults(isCorrect, explanation) {
 // --- 5. INITIALISATION ---
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Gestionnaire ajout Ebook
     const ebookForm = document.getElementById('ebook-admin-form');
     if (ebookForm) {
         ebookForm.addEventListener('submit', async (e) => {
