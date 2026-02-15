@@ -9,63 +9,62 @@ const HEADERS = {
 };
 
 /**
- * 1. UI DISPLAY FUNCTIONS
+ * 1. UI DISPLAY & NAVIGATION
  */
 function showSection(sectionId) {
-    document.getElementById('form-section').classList.toggle('hidden', sectionId !== 'form-section');
-    document.getElementById('quiz-section').classList.toggle('hidden', sectionId !== 'quiz-section');
-    document.getElementById('nav-form').classList.toggle('nav-active', sectionId === 'form-section');
-    document.getElementById('nav-quiz').classList.toggle('nav-active', sectionId === 'quiz-section');
+    const sections = ['form-section', 'quiz-section', 'ebook-section'];
     
-    // Si on va sur le quiz, on charge une question
+    sections.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('hidden', id !== sectionId);
+    });
+
+    // Mise à jour visuelle des boutons de navigation
+    const navButtons = {
+        'form-section': 'nav-form',
+        'quiz-section': 'nav-quiz',
+        'ebook-section': 'nav-ebook'
+    };
+
+    Object.entries(navButtons).forEach(([sId, btnId]) => {
+        const btn = document.getElementById(btnId);
+        if (btn) btn.classList.toggle('nav-active', sId === sectionId);
+    });
+
+    // Chargement dynamique des données
     if (sectionId === 'quiz-section') loadQuestion();
-}
-
-function displayResults(isCorrect, explanation) {
-    const resDiv = document.getElementById('result');
-    if (!resDiv) return;
-
-    resDiv.classList.remove('hidden');
-    resDiv.className = `mt-8 p-6 rounded-2xl border-2 animate-reveal ${isCorrect ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`;
-    
-    document.getElementById('result-icon').textContent = isCorrect ? "✨" : "🧐";
-    document.getElementById('result-text').textContent = isCorrect ? "Bravo !" : "Presque...";
-    document.getElementById('explanation').textContent = explanation;
-    
-    if (isCorrect) {
-        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#10b981', '#34d399'] });
-    }
-    
-    document.getElementById('submit-btn').classList.add('hidden');
+    if (sectionId === 'ebook-section') loadEbooks();
 }
 
 /**
- * 2. CORE LOGIC (SUPABASE)
+ * 2. QUIZ LOGIC
  */
 async function loadQuestion() {
-    document.getElementById('loading').classList.remove('hidden');
-    document.getElementById('quiz-content').classList.add('hidden');
-    document.getElementById('result').classList.add('hidden');
-    document.getElementById('submit-btn').classList.remove('hidden');
-    document.getElementById('submit-btn').disabled = false;
+    const loading = document.getElementById('loading');
+    const content = document.getElementById('quiz-content');
+    const result = document.getElementById('result');
+    const submitBtn = document.getElementById('submit-btn');
+
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    result.classList.add('hidden');
+    submitBtn.classList.remove('hidden');
+    submitBtn.disabled = false;
 
     try {
-        // On récupère toutes les questions de Supabase
         const response = await fetch(`${SUPABASE_URL}/rest/v1/questions?select=*`, { headers: HEADERS });
         const questions = await response.json();
 
-        if (questions.length === 0) {
-            document.getElementById('loading').innerHTML = "Aucune question disponible. Créez-en une !";
+        if (!questions || questions.length === 0) {
+            loading.innerHTML = "<p class='p-8 text-slate-400'>Aucune question disponible. Ajoutez une ressource !</p>";
             return;
         }
 
-        // --- SELECTION ALEATOIRE ---
         const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
         renderQuiz(randomQuestion);
         
     } catch (err) {
-        console.error(err);
-        document.getElementById('loading').innerHTML = `<p class="text-red-500 font-bold">Erreur de chargement</p>`;
+        loading.innerHTML = `<p class="text-rose-500 font-bold p-8">Erreur de connexion</p>`;
     }
 }
 
@@ -96,13 +95,77 @@ function renderQuiz(data) {
         const formData = new FormData(e.target);
         const userAns = parseInt(formData.get('answer'));
         const isCorrect = userAns === data.reponse_correcte;
-
         displayResults(isCorrect, data.explication);
     };
 }
 
+function displayResults(isCorrect, explanation) {
+    const resDiv = document.getElementById('result');
+    resDiv.classList.remove('hidden');
+    resDiv.className = `mt-8 p-6 rounded-2xl border-2 animate-reveal ${isCorrect ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`;
+    
+    document.getElementById('result-icon').textContent = isCorrect ? "✨" : "🧐";
+    document.getElementById('result-text').textContent = isCorrect ? "Bravo !" : "Presque...";
+    document.getElementById('explanation').textContent = explanation;
+    
+    if (isCorrect && typeof confetti === 'function') {
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#10b981', '#34d399'] });
+    }
+    
+    document.getElementById('submit-btn').classList.add('hidden');
+}
+
 /**
- * 3. FORM SUBMISSION (ADMIN)
+ * 3. EBOOK LIBRARY LOGIC
+ */
+async function loadEbooks() {
+    const grid = document.getElementById('ebook-grid');
+    grid.innerHTML = `<div class="col-span-full flex justify-center p-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>`;
+
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/ebooks?select=*`, { headers: HEADERS });
+        const ebooks = await response.json();
+
+        if (!ebooks || ebooks.length === 0) {
+            grid.innerHTML = "<p class='col-span-full text-center text-slate-400 p-12'>Aucun livre disponible.</p>";
+            return;
+        }
+
+        grid.innerHTML = ebooks.map(book => `
+            <div class="group bg-white p-5 rounded-[2rem] border-2 border-slate-100 hover:border-indigo-100 hover:shadow-xl transition-all duration-300 cursor-pointer" 
+                 onclick="openReader('${book.file_url}', '${book.title.replace(/'/g, "\\'")}')">
+                <div class="relative aspect-[3/4] overflow-hidden rounded-2xl mb-5 shadow-sm">
+                    <img src="${book.cover_url || 'https://images.unsplash.com/photo-1543005139-059e41cc7261'}" class="w-full h-full object-cover group-hover:scale-105 transition-all">
+                    <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                         <span class="bg-white text-indigo-600 px-4 py-2 rounded-xl font-bold shadow-lg">Lire le PDF</span>
+                    </div>
+                </div>
+                <div class="px-2">
+                    <span class="text-[10px] font-bold text-indigo-500 uppercase">${book.category || 'Général'}</span>
+                    <h3 class="font-bold text-slate-800 line-clamp-1">${book.title}</h3>
+                </div>
+            </div>
+        `).join('');
+    } catch (err) {
+        grid.innerHTML = "<p class='text-rose-500 text-center col-span-full'>Erreur bibliothèque</p>";
+    }
+}
+
+function openReader(url, title) {
+    document.getElementById('ebook-grid').classList.add('hidden');
+    document.getElementById('reader-container').classList.remove('hidden');
+    document.getElementById('reader-title').textContent = title;
+    document.getElementById('pdf-viewer').src = url;
+}
+
+function closeReader() {
+    document.getElementById('ebook-grid').classList.remove('hidden');
+    document.getElementById('reader-container').classList.add('hidden');
+    document.getElementById('pdf-viewer').src = "";
+}
+
+/**
+ * 4. ADMIN FORM LOGIC
  */
 document.getElementById('supabase-admin-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -129,7 +192,7 @@ document.getElementById('supabase-admin-form').addEventListener('submit', async 
 
         if (!response.ok) throw new Error('Erreur Supabase');
 
-        alert("✅ Données envoyées ! Gemini prépare la question dans quelques secondes...");
+        alert("✅ Données envoyées ! Gemini prépare la question...");
         e.target.reset();
         
     } catch (err) {
@@ -140,82 +203,5 @@ document.getElementById('supabase-admin-form').addEventListener('submit', async 
     }
 });
 
-function showSection(sectionId) {
-    // Liste de toutes tes sections
-    const sections = ['form-section', 'quiz-section', 'ebook-section'];
-    
-    sections.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.toggle('hidden', id !== sectionId);
-    });
-
-    // Gestion de l'état "actif" des boutons de nav
-    document.getElementById('nav-form').classList.toggle('nav-active', sectionId === 'form-section');
-    document.getElementById('nav-quiz').classList.toggle('nav-active', sectionId === 'quiz-section');
-    document.getElementById('nav-ebook').classList.toggle('nav-active', sectionId === 'ebook-section');
-
-    // Charger les données spécifiques à la section
-    if (sectionId === 'quiz-section') loadQuestion();
-    if (sectionId === 'ebook-section') loadEbooks(); // <-- On charge les livres quand on ouvre l'onglet
-}
-async function loadEbooks() {
-    const grid = document.getElementById('ebook-grid');
-    grid.innerHTML = `
-        <div class="col-span-full flex justify-center p-12">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-        </div>`;
-
-    try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/ebooks?select=*`, { headers: HEADERS });
-        const ebooks = await response.json();
-
-        if (ebooks.length === 0) {
-            grid.innerHTML = "<p class='col-span-full text-center text-slate-400'>Aucun livre disponible.</p>";
-            return;
-        }
-
-        grid.innerHTML = ebooks.map(book => `
-            <div class="group bg-white p-5 rounded-[2rem] border-2 border-slate-100 hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 cursor-pointer" 
-                 onclick="openReader('${book.file_url}', '${book.title.replace(/'/g, "\\'")}')">
-                
-                <div class="relative aspect-[3/4] overflow-hidden rounded-2xl mb-5 shadow-sm">
-                    <img src="${book.cover_url || 'https://images.unsplash.com/photo-1543005139-059e41cc7261'}" 
-                         class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                        <span class="w-full py-2 bg-white/90 backdrop-blur-sm text-indigo-600 rounded-xl text-center font-bold text-sm">
-                            Ouvrir le PDF
-                        </span>
-                    </div>
-                </div>
-
-                <div class="px-2">
-                    <span class="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">${book.category || 'Général'}</span>
-                    <h3 class="font-bold text-slate-800 mt-1 group-hover:text-indigo-600 transition-colors line-clamp-1">${book.title}</h3>
-                    <p class="text-xs text-slate-400 mt-1">${book.author || 'Auteur inconnu'}</p>
-                </div>
-            </div>
-        `).join('');
-    } catch (err) {
-        grid.innerHTML = "<p class='text-red-500 text-center col-span-full'>Erreur de chargement de la bibliothèque.</p>";
-    }
-}
-
-function openReader(url, title) {
-    document.getElementById('ebook-grid').classList.add('hidden');
-    document.getElementById('reader-container').classList.remove('hidden');
-    document.getElementById('reader-title').textContent = title;
-    
-    // Ajout d'un petit loader dans l'iframe pendant le chargement
-    const viewer = document.getElementById('pdf-viewer');
-    viewer.src = url;
-}
-
-function closeReader() {
-    document.getElementById('ebook-grid').classList.remove('hidden');
-    document.getElementById('reader-container').classList.add('hidden');
-    document.getElementById('pdf-viewer').src = "";
-}
-
-
-// Start
-loadQuestion();
+// INITIALISATION
+showSection('form-section');
