@@ -143,3 +143,49 @@ function renderQuiz(data) {
 
 // 3. START APP
 loadQuestion();
+
+// Add this to your app.js
+document.getElementById('supabase-admin-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('form-submit-btn');
+    const formData = new FormData(e.target);
+    
+    // Prepare Data
+    const payload = {
+        title: formData.get('titre'),
+        type: formData.get('nature'),
+        learning: formData.get('apprentissage'),
+        source_url: formData.get('url'),
+        created_at: new Date().toISOString()
+    };
+
+    // UI State: Loading
+    btn.disabled = true;
+    btn.innerHTML = "Envoi en cours...";
+
+    try {
+        const response = await fetch('https://YOUR_PROJECT_ID.supabase.co/rest/v1/YOUR_TABLE_NAME', {
+            method: 'POST',
+            headers: {
+                'apikey': 'YOUR_SUPABASE_ANON_KEY',
+                'Authorization': 'Bearer YOUR_SUPABASE_ANON_KEY',
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            alert("✅ Données enregistrées avec succès !");
+            e.target.reset();
+        } else {
+            throw new Error('Erreur serveur Supabase');
+        }
+    } catch (err) {
+        console.error(err);
+        alert("❌ Erreur lors de l'envoi.");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = "Enregistrer dans Supabase";
+    }
+});
