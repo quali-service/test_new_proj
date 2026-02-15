@@ -164,7 +164,7 @@ document.getElementById('supabase-admin-form').addEventListener('submit', async 
     btn.innerHTML = "Envoi en cours...";
 
     try {
-        const response = await fetch('https://spxrksdfcasapbhfrjfb.supabase.co/rest/v1/YOUR_TABLE_NAME', {
+        const response = await fetch('https://spxrksdfcasapbhfrjfb.supabase.co/rest/v1/ressources', {
             method: 'POST',
             headers: {
                 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNweHJrc2RmY2FzYXBiaGZyamZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNDMwNjQsImV4cCI6MjA4NjcxOTA2NH0.T1oIfE7i-7lMocKGIkIiimpY-ahTqovVW96n_UcbneI',
