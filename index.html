@@ -320,18 +320,25 @@
     <div id="ebook-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"></div>
 
     <div id="reader-container" class="hidden animate-reveal">
-        <div class="flex items-center justify-between mb-6">
-            <button onclick="closeReader()" class="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all shadow-sm">
-                <span>←</span> Retour
-            </button>
-            <h3 id="reader-title" class="font-black text-slate-800 truncate px-4"></h3>
-        </div>
-        <div class="bg-slate-200 p-1.5 rounded-[2.5rem] shadow-inner">
-            <div class="bg-white rounded-[2rem] overflow-hidden shadow-2xl border border-slate-300">
-                <iframe id="pdf-viewer" class="w-full h-[75vh]" frameborder="0"></iframe>
-            </div>
+    <div class="flex items-center justify-between mb-6">
+        <button onclick="closeReader()" class="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all shadow-sm">
+            <span>←</span> Retour
+        </button>
+        <h3 id="reader-title" class="font-black text-slate-800 truncate px-4 flex-1 text-center"></h3>
+        <div id="epub-nav" class="hidden flex gap-2">
+            <button onclick="rendition.prev()" class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">◀</button>
+            <button onclick="rendition.next()" class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">▶</button>
         </div>
     </div>
+
+    <div class="bg-slate-200 p-1.5 rounded-[2.5rem] shadow-inner relative">
+        <div class="bg-white rounded-[2rem] overflow-hidden shadow-2xl border border-slate-300 min-h-[75vh]">
+            <iframe id="pdf-viewer" class="w-full h-[75vh] hidden" frameborder="0"></iframe>
+            
+            <div id="epub-viewer" class="w-full h-[75vh] hidden"></div>
+        </div>
+    </div>
+</div>
 </section>
 
     </main>
