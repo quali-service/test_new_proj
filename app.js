@@ -1,4 +1,5 @@
 console.log("🚀 Le fichier app.js est bien chargé !");
+window.JSZip = window.JSZip || undefined; // Force la visibilité globale
 
 // --- 1. CONFIGURATION SUPABASE ---
 const SUPABASE_URL = "https://spxrksdfcasapbhfrjfb.supabase.co";
