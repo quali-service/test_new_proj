@@ -278,43 +278,67 @@ document.addEventListener('DOMContentLoaded', () => {
     const ebookForm = document.getElementById('ebook-admin-form');
     if (ebookForm) {
         ebookForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('ebook-submit-btn');
-            const formData = new FormData(e.target);
-            
-            const payload = {
-                title: formData.get('title'),
-                author: formData.get('author'),
-                category: formData.get('category'),
-                cover_url: formData.get('cover_url'),
-                file_url: formData.get('file_url'),
-                created_at: new Date().toISOString()
-            };
+    e.preventDefault();
+    const btn = document.getElementById('ebook-submit-btn');
+    const fileInput = document.getElementById('ebook-file-input');
+    const file = fileInput.files[0];
+    const formData = new FormData(e.target);
 
-            btn.disabled = true;
-            btn.innerHTML = "Connexion...";
+    btn.disabled = true;
+    btn.innerHTML = "Téléchargement du fichier...";
 
-            try {
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/ebooks`, {
-                    method: 'POST',
-                    headers: { ...HEADERS, 'Prefer': 'return=minimal' },
-                    body: JSON.stringify(payload)
-                });
+    try {
+        // 1. Uploader le fichier dans le Storage de Supabase
+        // Note: Assure-toi d'avoir créé un bucket "ebooks" en mode PUBLIC sur Supabase
+        const fileName = `${Date.now()}_${file.name.replace(/\s/g, '_')}`;
+        const storageUrl = `${SUPABASE_URL}/storage/v1/object/ebooks/${fileName}`;
 
-                if (!response.ok) throw new Error('Erreur');
-
-                if (typeof confetti === 'function') confetti({ particleCount: 50, origin: { y: 0.8 } });
-                
-                e.target.reset();
-                window.toggleAddEbookForm(); 
-                loadEbooks(); 
-            } catch (err) {
-                alert("Erreur lors de l'enregistrement.");
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = "Enregistrer dans la bibliothèque";
-            }
+        const uploadRes = await fetch(storageUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${ANON_KEY}`,
+                'apikey': ANON_KEY,
+                'Content-Type': file.type
+            },
+            body: file
         });
+
+        if (!uploadRes.ok) throw new Error("Erreur d'upload vers le Storage");
+
+        // 2. Récupérer l'URL publique (si ton bucket est public)
+        const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/ebooks/${fileName}`;
+
+        // 3. Enregistrer les données dans la table "ebooks"
+        const payload = {
+            title: formData.get('title'),
+            author: formData.get('author'),
+            category: formData.get('category'),
+            cover_url: formData.get('cover_url'),
+            file_url: publicUrl, // On utilise l'URL générée ici
+            created_at: new Date().toISOString()
+        };
+
+        const dbRes = await fetch(`${SUPABASE_URL}/rest/v1/ebooks`, {
+            method: 'POST',
+            headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!dbRes.ok) throw new Error('Erreur base de données');
+
+        alert("Livre ajouté avec succès !");
+        e.target.reset();
+        window.toggleAddEbookForm();
+        loadEbooks();
+
+    } catch (err) {
+        console.error(err);
+        alert("Erreur : " + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = "Enregistrer dans la bibliothèque";
+    }
+});
     }
 }); // FERMETURE DU DOMContentLoaded
 
