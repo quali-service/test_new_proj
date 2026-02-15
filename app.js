@@ -195,4 +195,11 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) {
                 alert(err.message);
             } finally {
-                btn
+                btn.disabled = false;
+                btn.innerHTML = "Enregistrer";
+            }
+        });
+    }
+    
+    showSection('form-section');
+});
