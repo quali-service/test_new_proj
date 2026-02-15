@@ -177,18 +177,24 @@ let rendition = null; // Variable pour stocker le livre en cours
 window.openReader = function(url, title) {
     const grid = document.getElementById('ebook-grid');
     const container = document.getElementById('reader-container');
-    const viewer = document.getElementById('pdf-viewer'); // On réutilise le conteneur
+    const viewer = document.getElementById('pdf-viewer');
     const readerTitle = document.getElementById('reader-title');
+    const epubNav = document.getElementById('epub-nav'); // On récupère les boutons nav
 
     grid.classList.add('hidden');
     container.classList.remove('hidden');
     readerTitle.textContent = title;
 
-    // Vérifier si c'est un EPUB
     if (url.toLowerCase().endsWith('.epub')) {
-        viewer.classList.add('hidden'); // Cache l'iframe PDF
+        // --- SÉCURITÉ EPUB.JS ---
+        if (typeof ePub === 'undefined') {
+            alert("Le moteur de lecture EPUB est encore en chargement... Réessayez dans 2 secondes.");
+            return;
+        }
+
+        viewer.classList.add('hidden');
+        if (epubNav) epubNav.classList.remove('hidden'); // Affiche les flèches
         
-        // Créer un conteneur pour l'EPUB s'il n'existe pas
         let epubCont = document.getElementById('epub-viewer');
         if (!epubCont) {
             epubCont = document.createElement('div');
@@ -197,30 +203,31 @@ window.openReader = function(url, title) {
             viewer.parentNode.appendChild(epubCont);
         }
         epubCont.classList.remove('hidden');
-        epubCont.innerHTML = ""; // Nettoyer
+        epubCont.innerHTML = ""; 
 
-        // Charger l'EPUB avec ePub.js
+        // Initialisation globale pour que les boutons HTML fonctionnent
         const book = ePub(url);
-        rendition = book.renderTo("epub-viewer", {
+        window.rendition = book.renderTo("epub-viewer", {
             width: "100%",
             height: "100%",
-            flow: "paginated"
+            flow: "paginated",
+            manager: "default"
         });
-        rendition.display();
         
-        // Ajouter la navigation au clavier
+        window.rendition.display();
         window.addEventListener("keydown", handleNav);
     } else {
-        // C'est un PDF classique
+        // PDF classique
         document.getElementById('epub-viewer')?.classList.add('hidden');
+        if (epubNav) epubNav.classList.add('hidden'); // Cache les flèches
         viewer.classList.remove('hidden');
         viewer.src = url;
     }
 };
 
 function handleNav(e) {
-    if (e.key === "ArrowLeft") rendition?.prev();
-    if (e.key === "ArrowRight") rendition?.next();
+    if (e.key === "ArrowLeft") window.rendition?.prev();
+    if (e.key === "ArrowRight") window.rendition?.next();
 }
 
 window.closeReader = function() {
@@ -228,6 +235,7 @@ window.closeReader = function() {
     document.getElementById('reader-container').classList.add('hidden');
     document.getElementById('pdf-viewer').src = "";
     document.getElementById('epub-viewer').innerHTML = "";
+    document.getElementById('epub-nav')?.classList.add('hidden'); // Cache la nav
     window.removeEventListener("keydown", handleNav);
 };
 
