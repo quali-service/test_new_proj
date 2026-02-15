@@ -22,32 +22,30 @@
 
 
 
-    <nav class="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 z-50 lg:top-0 lg:left-0 lg:w-64 lg:h-full lg:border-t-0 lg:border-r flex lg:flex-col justify-around lg:justify-start p-2 lg:p-6">
+   <nav class="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 z-50 lg:top-0 lg:left-0 lg:w-64 lg:h-full lg:border-t-0 lg:border-r flex lg:flex-col justify-around lg:justify-start p-2 lg:p-6 gap-2">
+    <div class="hidden lg:block mb-8 px-2">
+        <h2 class="text-xl font-black text-indigo-600 tracking-tighter uppercase">Quiz App</h2>
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Library v1.0</p>
+    </div>
 
-        <div class="hidden lg:block mb-8 px-2">
+    <button onclick="showSection('form-section')" id="nav-form" 
+        class="flex flex-col lg:flex-row items-center gap-1 lg:gap-3 px-4 py-2 lg:py-3 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all w-full text-sm font-bold group">
+        <span class="text-xl group-hover:scale-110 transition-transform">📝</span>
+        <span>Ajouter</span>
+    </button>
 
-            <h2 class="text-xl font-black text-indigo-600 tracking-tighter">QUIZ APP</h2>
+    <button onclick="showSection('quiz-section')" id="nav-quiz" 
+        class="flex flex-col lg:flex-row items-center gap-1 lg:gap-3 px-4 py-2 lg:py-3 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all w-full text-sm font-bold group">
+        <span class="text-xl group-hover:scale-110 transition-transform">🧠</span>
+        <span>Quiz</span>
+    </button>
 
-            <p class="text-xs text-slate-400">Knowledge Manager v1.0</p>
-
-        </div>
-
-        <button onclick="showSection('form-section')" id="nav-form" class="flex flex-col lg:flex-row items-center gap-1 lg:gap-3 px-4 py-2 lg:py-3 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all w-full text-sm font-bold">
-
-            <span class="text-xl">📝</span><span>Formulaire</span>
-
-        </button>
-
-        <button onclick="showSection('quiz-section')" id="nav-quiz" class="nav-active flex flex-col lg:flex-row items-center gap-1 lg:gap-3 px-4 py-2 lg:py-3 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all w-full text-sm font-bold">
-
-            <span class="text-xl">🧠</span><span>Question</span>
-
-        </button>
-
-        <button id="nav-ebook" onclick="showSection('ebook-section')" class="nav-btn">Bibliothèque</button>
-
-    </nav>
-
+    <button onclick="showSection('ebook-section')" id="nav-ebook" 
+        class="flex flex-col lg:flex-row items-center gap-1 lg:gap-3 px-4 py-2 lg:py-3 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all w-full text-sm font-bold group">
+        <span class="text-xl group-hover:scale-110 transition-transform">📚</span>
+        <span>Livres</span>
+    </button>
+</nav>
 
 
     <main class="lg:ml-64 p-4 pb-24 lg:pb-8 min-h-screen flex items-center justify-center">
