@@ -10,7 +10,6 @@ const HEADERS = {
     'Content-Type': 'application/json'
 };
 
-// Variable globale pour le lecteur ePub
 window.rendition = null;
 
 // --- 2. NAVIGATION & UI ---
@@ -22,7 +21,6 @@ window.showSection = function(sectionId) {
         if (el) el.classList.toggle('hidden', id !== sectionId);
     });
 
-    // Mise à jour visuelle des boutons de navigation
     const navButtons = {
         'form-section': 'nav-form',
         'quiz-section': 'nav-quiz',
@@ -43,15 +41,11 @@ window.showSection = function(sectionId) {
 
 window.toggleAddEbookForm = function() {
     const container = document.getElementById('add-ebook-container');
-    const icon = document.getElementById('toggle-icon');
-    const text = document.getElementById('toggle-text');
     if (!container) return;
-
     const isHidden = container.classList.contains('hidden');
     container.classList.toggle('hidden');
-    
-    if (icon) icon.textContent = isHidden ? "✖" : "➕";
-    if (text) text.textContent = isHidden ? "Fermer" : "Ajouter un livre";
+    document.getElementById('toggle-icon').textContent = isHidden ? "✖" : "➕";
+    document.getElementById('toggle-text').textContent = isHidden ? "Fermer" : "Ajouter un livre";
 };
 
 // --- 3. LOGIQUE EBOOK & LECTEUR ---
@@ -92,85 +86,52 @@ async function loadEbooks() {
 window.loadEbooks = loadEbooks;
 
 window.openReader = function(url, title) {
-    console.log("--- 🏁 Début de l'ouverture du lecteur ---");
-    console.log("📂 URL du fichier :", url);
-    console.log("📖 Titre :", title);
-
+    console.log("📖 Ouverture de :", title);
     const grid = document.getElementById('ebook-grid');
     const container = document.getElementById('reader-container');
     const viewer = document.getElementById('pdf-viewer');
     const readerTitle = document.getElementById('reader-title');
     const epubNav = document.getElementById('epub-nav');
+    const epubCont = document.getElementById('epub-viewer');
 
     grid.classList.add('hidden');
     container.classList.remove('hidden');
     readerTitle.textContent = title;
 
     if (url.toLowerCase().endsWith('.epub')) {
-        console.log("🔍 Format détecté : EPUB");
-        
-        // 1. Vérification de la bibliothèque
-        if (typeof ePub === 'undefined') {
-            console.error("❌ ERREUR : La bibliothèque ePub.js n'est pas chargée dans le HTML !");
-            alert("Erreur: Bibliothèque ePub.js non chargée.");
-            return;
-        }
-
-        // 2. Test de l'existence réelle du fichier (Pre-fetch check)
-        console.log("⏳ Vérification de l'existence du fichier sur le serveur...");
-        fetch(url, { method: 'HEAD' })
-            .then(res => {
-                if (res.ok) {
-                    console.log("✅ Fichier trouvé ! (Status:", res.status, ")");
-                } else {
-                    console.error("❌ Fichier introuvable ou inaccessible ! (Status:", res.status, ")");
-                    console.warn("👉 Vérifiez les permissions du bucket 'ebooks' dans Supabase.");
-                }
-            })
-            .catch(err => console.error("❌ Erreur réseau lors de la vérification :", err));
-
         viewer.classList.add('hidden');
         if (epubNav) epubNav.classList.remove('hidden');
-        
-        let epubCont = document.getElementById('epub-viewer');
-        if (!epubCont) {
-            epubCont = document.createElement('div');
-            epubCont.id = 'epub-viewer';
-            epubCont.className = "w-full h-[75vh] bg-white";
-            viewer.parentNode.appendChild(epubCont);
+        if (epubCont) {
+            epubCont.classList.remove('hidden');
+            epubCont.innerHTML = "<div class='flex flex-col items-center justify-center h-full'><div class='animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4'></div><p class='text-slate-500'>Chargement sécurisé...</p></div>";
         }
-        epubCont.classList.remove('hidden');
-        epubCont.innerHTML = ""; 
 
-        // 3. Initialisation du rendu
-        console.log("⚙️ Initialisation du moteur ePub.js...");
-        const proxyUrl = `${SUPABASE_URL}/functions/v1/proxy-epub?url=${encodeURIComponent(url)}`;
-console.log("🔗 Chargement via Proxy :", proxyUrl);
-
-const book = ePub(proxyUrl);
-        window.rendition = book.renderTo("epub-viewer", {
-            width: "100%",
-            height: "100%",
-            flow: "paginated",
-            manager: "default"
-        });
-
-        window.rendition.display()
-            .then(() => {
-                console.log("✨ SUCCÈS : Le contenu du livre est affiché.");
+        // 🛡️ CORRECTION 401 : On télécharge avec les headers d'autorisation
+        fetch(url, { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } })
+            .then(res => {
+                if (!res.ok) throw new Error("Accès refusé (401). Vérifiez vos permissions Storage.");
+                return res.arrayBuffer();
+            })
+            .then(data => {
+                if (epubCont) epubCont.innerHTML = ""; 
+                const book = ePub(data);
+                window.rendition = book.renderTo("epub-viewer", {
+                    width: "100%",
+                    height: "100%",
+                    flow: "paginated",
+                    manager: "default"
+                });
+                window.rendition.display();
+                console.log("✨ Livre chargé avec succès via ArrayBuffer");
             })
             .catch(err => {
-                console.error("❌ ERREUR de rendu ePub.js :");
-                console.dir(err); // Affiche l'objet d'erreur complet
-                if (err.message && err.message.includes('CORS')) {
-                    console.warn("🚨 Problème de CORS détecté ! Le serveur refuse l'accès au contenu du fichier.");
-                }
+                console.error("❌ Erreur de lecture :", err);
+                if (epubCont) epubCont.innerHTML = `<div class='p-10 text-center text-rose-500 font-bold'>Impossible d'ouvrir le livre : ${err.message}</div>`;
             });
 
         window.addEventListener("keydown", handleKeyNav);
     } else {
-        console.log("🔍 Format détecté : Autre (PDF ou URL)");
-        document.getElementById('epub-viewer')?.classList.add('hidden');
+        if (epubCont) epubCont.classList.add('hidden');
         if (epubNav) epubNav.classList.add('hidden');
         viewer.classList.remove('hidden');
         viewer.src = url;
@@ -182,7 +143,10 @@ window.closeReader = function() {
     document.getElementById('reader-container').classList.add('hidden');
     document.getElementById('pdf-viewer').src = "";
     const epubCont = document.getElementById('epub-viewer');
-    if (epubCont) epubCont.innerHTML = "";
+    if (epubCont) {
+        epubCont.innerHTML = "";
+        epubCont.classList.add('hidden');
+    }
     window.removeEventListener("keydown", handleKeyNav);
 };
 
@@ -190,9 +154,6 @@ function handleKeyNav(e) {
     if (e.key === "ArrowLeft") window.rendition?.prev();
     if (e.key === "ArrowRight") window.rendition?.next();
 }
-
-window.nextPage = () => window.rendition?.next();
-window.prevPage = () => window.rendition?.prev();
 
 // --- 4. LOGIQUE QUIZ ---
 
@@ -202,8 +163,7 @@ window.loadQuestion = async function() {
     const result = document.getElementById('result');
     const submitBtn = document.getElementById('submit-btn');
 
-    if (!loading) return;
-    loading.classList.remove('hidden');
+    if (loading) loading.classList.remove('hidden');
     if (content) content.classList.add('hidden');
     if (result) result.classList.add('hidden');
     if (submitBtn) {
@@ -214,17 +174,13 @@ window.loadQuestion = async function() {
     try {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/questions?select=*`, { headers: HEADERS });
         const questions = await response.json();
-
         if (!questions || questions.length === 0) {
-            loading.innerHTML = "<p class='p-8 text-slate-400 text-center'>Aucune question disponible. Ajoutez une ressource !</p>";
+            loading.innerHTML = "<p class='p-8 text-slate-400 text-center'>Aucune question disponible.</p>";
             return;
         }
-
-        const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
-        renderQuiz(randomQuestion);
-        
+        renderQuiz(questions[Math.floor(Math.random() * questions.length)]);
     } catch (err) {
-        loading.innerHTML = `<p class="text-rose-500 font-bold p-8 text-center">Erreur de connexion</p>`;
+        if (loading) loading.innerHTML = `<p class="text-rose-500 font-bold p-8 text-center">Erreur de connexion</p>`;
     }
 };
 
@@ -262,31 +218,23 @@ function displayResults(isCorrect, explanation) {
     const resDiv = document.getElementById('result');
     resDiv.classList.remove('hidden');
     resDiv.className = `mt-8 p-6 rounded-2xl border-2 ${isCorrect ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`;
-    
     document.getElementById('result-icon').textContent = isCorrect ? "✨" : "🧐";
     document.getElementById('result-text').textContent = isCorrect ? "Bravo !" : "Presque...";
     document.getElementById('explanation').textContent = explanation;
-    
-    if (isCorrect && typeof confetti === 'function') {
-        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-    }
-    
+    if (isCorrect && typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
     document.getElementById('submit-btn').classList.add('hidden');
 }
 
 // --- 5. INITIALISATION ---
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Gestionnaire de formulaire Ebooks
     const ebookForm = document.getElementById('ebook-admin-form');
     if (ebookForm) {
         ebookForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('ebook-submit-btn');
-            const fileInput = document.getElementById('ebook-file-input');
-            const file = fileInput.files[0];
+            const file = document.getElementById('ebook-file-input').files[0];
             const formData = new FormData(e.target);
-
             if (!file) { alert("Sélectionnez un fichier !"); return; }
 
             btn.disabled = true;
@@ -298,34 +246,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const uploadRes = await fetch(storageUrl, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${ANON_KEY}`,
-                        'apikey': ANON_KEY,
-                        'Content-Type': file.type
-                    },
+                    headers: { 'Authorization': `Bearer ${ANON_KEY}`, 'apikey': ANON_KEY, 'Content-Type': file.type },
                     body: file
                 });
 
-                if (!uploadRes.ok) throw new Error("Erreur Storage (Bucket 'ebooks' public ?)");
-
-                const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/ebooks/${fileName}`;
+                if (!uploadRes.ok) throw new Error("Erreur Storage");
 
                 const payload = {
                     title: formData.get('title'),
                     author: formData.get('author'),
                     category: formData.get('category'),
                     cover_url: formData.get('cover_url'),
-                    file_url: publicUrl,
+                    file_url: `${SUPABASE_URL}/storage/v1/object/public/ebooks/${fileName}`,
                     created_at: new Date().toISOString()
                 };
 
-                const dbRes = await fetch(`${SUPABASE_URL}/rest/v1/ebooks`, {
+                await fetch(`${SUPABASE_URL}/rest/v1/ebooks`, {
                     method: 'POST',
                     headers: { ...HEADERS, 'Prefer': 'return=minimal' },
                     body: JSON.stringify(payload)
                 });
-
-                if (!dbRes.ok) throw new Error('Erreur base de données');
 
                 alert("Livre ajouté !");
                 e.target.reset();
@@ -339,7 +279,5 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
-    // Lancer la section par défaut
     window.showSection('form-section');
 });
