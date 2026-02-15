@@ -92,12 +92,12 @@ window.openReader = function(url, title) {
     const epubNav = document.getElementById('epub-nav');
     const epubCont = document.getElementById('epub-viewer');
 
-    grid.classList.add('hidden');
-    container.classList.remove('hidden');
-    readerTitle.textContent = title;
+    if (grid) grid.classList.add('hidden');
+    if (container) container.classList.remove('hidden');
+    if (readerTitle) readerTitle.textContent = title;
 
     if (url.toLowerCase().endsWith('.epub')) {
-        viewer.classList.add('hidden');
+        if (viewer) viewer.classList.add('hidden');
         if (epubNav) epubNav.classList.remove('hidden');
         
         if (epubCont) {
@@ -109,27 +109,28 @@ window.openReader = function(url, title) {
             .then(res => res.arrayBuffer())
             .then(data => {
                 if (epubCont) epubCont.innerHTML = ""; 
-                // CRUCIAL : On attend que le navigateur ait calculé la taille du div
                 setTimeout(() => {
                     if (window.Reader) {
                         window.Reader.init(data, "epub-viewer", title);
                     }
-                }, 100);
+                }, 200);
             })
-            .catch(err => {
-                console.error("Erreur Reader :", err);
-            });
+            .catch(err => console.error("Erreur Reader :", err));
     } else {
         if (epubCont) epubCont.classList.add('hidden');
         if (epubNav) epubNav.classList.add('hidden');
-        viewer.classList.remove('hidden');
-        viewer.src = url;
+        if (viewer) {
+            viewer.classList.remove('hidden');
+            viewer.src = url;
+        }
     }
 };
+
 window.closeReader = function() {
     document.getElementById('ebook-grid').classList.remove('hidden');
     document.getElementById('reader-container').classList.add('hidden');
-    document.getElementById('pdf-viewer').src = "";
+    const viewer = document.getElementById('pdf-viewer');
+    if (viewer) viewer.src = "";
     const epubCont = document.getElementById('epub-viewer');
     if (epubCont) {
         epubCont.innerHTML = "";
@@ -141,15 +142,13 @@ window.closeReader = function() {
 
 window.saveResourceToSupabase = async function(payload) {
     try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/ebooks`, {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/apprentissage_ton_nom`, { // Vérifie le nom de ta table ici
             method: 'POST',
             headers: { ...HEADERS, 'Prefer': 'return=minimal' },
             body: JSON.stringify(payload)
         });
 
-        if (!response.ok) throw new Error("Erreur lors de l'enregistrement Supabase");
-        
-        // Effet visuel
+        if (!response.ok) throw new Error("Erreur Supabase");
         if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         return true;
     } catch (err) {
@@ -179,12 +178,12 @@ window.loadQuestion = async function() {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/questions?select=*`, { headers: HEADERS });
         const questions = await response.json();
         if (!questions || questions.length === 0) {
-            loading.innerHTML = "<p class='p-8 text-slate-400 text-center'>Aucune question disponible.</p>";
+            if (loading) loading.innerHTML = "<p class='p-8 text-slate-400 text-center'>Aucune question.</p>";
             return;
         }
         renderQuiz(questions[Math.floor(Math.random() * questions.length)]);
     } catch (err) {
-        if (loading) loading.innerHTML = `<p class="text-rose-500 font-bold p-8 text-center">Erreur de connexion</p>`;
+        if (loading) loading.innerHTML = `<p class="text-rose-500 font-bold p-8 text-center">Erreur</p>`;
     }
 };
 
@@ -213,8 +212,7 @@ function renderQuiz(data) {
         e.preventDefault();
         const formData = new FormData(e.target);
         const userAns = parseInt(formData.get('answer'));
-        const isCorrect = userAns === data.reponse_correcte;
-        displayResults(isCorrect, data.explication);
+        displayResults(userAns === data.reponse_correcte, data.explication);
     };
 }
 
@@ -232,13 +230,18 @@ function displayResults(isCorrect, explanation) {
 // --- 6. INITIALISATION ---
 
 document.addEventListener('DOMContentLoaded', () => {
+    // On affiche par défaut la bibliothèque
+    window.showSection('ebook-section');
+
     const ebookForm = document.getElementById('ebook-admin-form');
     if (ebookForm) {
         ebookForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('ebook-submit-btn');
-            const file = document.getElementById('ebook-file-input').files[0];
+            const fileInput = document.getElementById('ebook-file-input');
+            const file = fileInput ? fileInput.files[0] : null;
             const formData = new FormData(e.target);
+            
             if (!file) { alert("Sélectionnez un fichier !"); return; }
 
             btn.disabled = true;
@@ -283,5 +286,4 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    window.showSection('form-section');
-});
+}); // FERMETURE CORRECTE DU DOMCONTENTLOADED
