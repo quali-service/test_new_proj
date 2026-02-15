@@ -1,3 +1,4 @@
+console.log("Le fichier app.js est bien chargé !");
 // --- CONFIGURATION SUPABASE ---
 const SUPABASE_URL = "https://spxrksdfcasapbhfrjfb.supabase.co";
 const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNweHJrc2RmY2FzYXBiaGZyamZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNDMwNjQsImV4cCI6MjA4NjcxOTA2NH0.T1oIfE7i-7lMocKGIkIiimpY-ahTqovVW96n_UcbneI";
