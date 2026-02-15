@@ -144,7 +144,10 @@ window.openReader = function(url, title) {
 
         // 3. Initialisation du rendu
         console.log("⚙️ Initialisation du moteur ePub.js...");
-        const book = ePub(url);
+        const proxyUrl = `${SUPABASE_URL}/functions/v1/proxy-epub?url=${encodeURIComponent(url)}`;
+console.log("🔗 Chargement via Proxy :", proxyUrl);
+
+const book = ePub(proxyUrl);
         window.rendition = book.renderTo("epub-viewer", {
             width: "100%",
             height: "100%",
