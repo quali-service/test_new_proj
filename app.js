@@ -160,34 +160,60 @@ function showSection(sectionId) {
 }
 async function loadEbooks() {
     const grid = document.getElementById('ebook-grid');
-    grid.innerHTML = "<p class='text-slate-500'>Chargement de la bibliothèque...</p>";
+    grid.innerHTML = `
+        <div class="col-span-full flex justify-center p-12">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        </div>`;
 
     try {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/ebooks?select=*`, { headers: HEADERS });
         const ebooks = await response.json();
 
         if (ebooks.length === 0) {
-            grid.innerHTML = "<p>Aucun livre dans la bibliothèque pour le moment.</p>";
+            grid.innerHTML = "<p class='col-span-full text-center text-slate-400'>Aucun livre disponible.</p>";
             return;
         }
 
         grid.innerHTML = ebooks.map(book => `
-            <div class="group bg-white p-4 rounded-3xl shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer" 
-                 onclick="openReader('${book.file_url}')">
-                <div class="relative overflow-hidden rounded-2xl mb-4">
-                    <img src="${book.cover_url || 'https://via.placeholder.com/150x200'}" 
-                         class="w-full h-56 object-cover transform group-hover:scale-110 transition-transform duration-500">
-                    <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <span class="bg-white text-indigo-600 px-4 py-2 rounded-full font-bold text-sm shadow-lg">Lire le livre</span>
+            <div class="group bg-white p-5 rounded-[2rem] border-2 border-slate-100 hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 cursor-pointer" 
+                 onclick="openReader('${book.file_url}', '${book.title.replace(/'/g, "\\'")}')">
+                
+                <div class="relative aspect-[3/4] overflow-hidden rounded-2xl mb-5 shadow-sm">
+                    <img src="${book.cover_url || 'https://images.unsplash.com/photo-1543005139-059e41cc7261'}" 
+                         class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                        <span class="w-full py-2 bg-white/90 backdrop-blur-sm text-indigo-600 rounded-xl text-center font-bold text-sm">
+                            Ouvrir le PDF
+                        </span>
                     </div>
                 </div>
-                <h3 class="font-bold text-slate-800 line-clamp-1">${book.title}</h3>
-                <p class="text-xs text-slate-500">${book.author || 'Auteur inconnu'}</p>
+
+                <div class="px-2">
+                    <span class="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">${book.category || 'Général'}</span>
+                    <h3 class="font-bold text-slate-800 mt-1 group-hover:text-indigo-600 transition-colors line-clamp-1">${book.title}</h3>
+                    <p class="text-xs text-slate-400 mt-1">${book.author || 'Auteur inconnu'}</p>
+                </div>
             </div>
         `).join('');
     } catch (err) {
-        grid.innerHTML = "<p class='text-red-500'>Erreur de connexion à la bibliothèque.</p>";
+        grid.innerHTML = "<p class='text-red-500 text-center col-span-full'>Erreur de chargement de la bibliothèque.</p>";
     }
+}
+
+function openReader(url, title) {
+    document.getElementById('ebook-grid').classList.add('hidden');
+    document.getElementById('reader-container').classList.remove('hidden');
+    document.getElementById('reader-title').textContent = title;
+    
+    // Ajout d'un petit loader dans l'iframe pendant le chargement
+    const viewer = document.getElementById('pdf-viewer');
+    viewer.src = url;
+}
+
+function closeReader() {
+    document.getElementById('ebook-grid').classList.remove('hidden');
+    document.getElementById('reader-container').classList.add('hidden');
+    document.getElementById('pdf-viewer').src = "";
 }
 
 
