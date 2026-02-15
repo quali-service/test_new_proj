@@ -306,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof confetti === 'function') confetti({ particleCount: 50, origin: { y: 0.8 } });
                 
                 e.target.reset();
-                window.toggleAddEbookForm(); // On utilise la version window
+                window.toggleAddEbookForm(); 
                 loadEbooks(); 
             } catch (err) {
                 alert("Erreur lors de l'enregistrement.");
@@ -316,6 +316,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+}); // FERMETURE DU DOMContentLoaded
+
+// RENDRE LES FONCTIONS ACCESSIBLES AU HTML
+window.showSection = showSection;
+window.loadQuestion = loadQuestion;
+window.loadEbooks = loadEbooks;
 // INITIALISATION SÉCURISÉE
 document.addEventListener('DOMContentLoaded', () => {
     // On affiche la section par défaut
