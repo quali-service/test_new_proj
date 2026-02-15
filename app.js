@@ -172,18 +172,64 @@ async function loadEbooks() {
     }
 }
 
-function openReader(url, title) {
-    document.getElementById('ebook-grid').classList.add('hidden');
-    document.getElementById('reader-container').classList.remove('hidden');
-    document.getElementById('reader-title').textContent = title;
-    document.getElementById('pdf-viewer').src = url;
+let rendition = null; // Variable pour stocker le livre en cours
+
+window.openReader = function(url, title) {
+    const grid = document.getElementById('ebook-grid');
+    const container = document.getElementById('reader-container');
+    const viewer = document.getElementById('pdf-viewer'); // On réutilise le conteneur
+    const readerTitle = document.getElementById('reader-title');
+
+    grid.classList.add('hidden');
+    container.classList.remove('hidden');
+    readerTitle.textContent = title;
+
+    // Vérifier si c'est un EPUB
+    if (url.toLowerCase().endsWith('.epub')) {
+        viewer.classList.add('hidden'); // Cache l'iframe PDF
+        
+        // Créer un conteneur pour l'EPUB s'il n'existe pas
+        let epubCont = document.getElementById('epub-viewer');
+        if (!epubCont) {
+            epubCont = document.createElement('div');
+            epubCont.id = 'epub-viewer';
+            epubCont.className = "w-full h-[75vh] bg-white";
+            viewer.parentNode.appendChild(epubCont);
+        }
+        epubCont.classList.remove('hidden');
+        epubCont.innerHTML = ""; // Nettoyer
+
+        // Charger l'EPUB avec ePub.js
+        const book = ePub(url);
+        rendition = book.renderTo("epub-viewer", {
+            width: "100%",
+            height: "100%",
+            flow: "paginated"
+        });
+        rendition.display();
+        
+        // Ajouter la navigation au clavier
+        window.addEventListener("keydown", handleNav);
+    } else {
+        // C'est un PDF classique
+        document.getElementById('epub-viewer')?.classList.add('hidden');
+        viewer.classList.remove('hidden');
+        viewer.src = url;
+    }
+};
+
+function handleNav(e) {
+    if (e.key === "ArrowLeft") rendition?.prev();
+    if (e.key === "ArrowRight") rendition?.next();
 }
 
-function closeReader() {
+window.closeReader = function() {
     document.getElementById('ebook-grid').classList.remove('hidden');
     document.getElementById('reader-container').classList.add('hidden');
     document.getElementById('pdf-viewer').src = "";
-}
+    document.getElementById('epub-viewer').innerHTML = "";
+    window.removeEventListener("keydown", handleNav);
+};
 
 /**
  * 4. ADMIN FORMS LOGIC (Resources & Ebooks)
