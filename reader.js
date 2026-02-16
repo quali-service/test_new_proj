@@ -10,88 +10,111 @@ const Reader = {
                 "text-align": "justify !important",
                 "padding": "0 8% !important"
             }
-        },
-        nightStyles: {
-            body: { "background": "#1a1a1a !important", "color": "#d1d1d1 !important" }
         }
     },
 
-init: function(data, containerId) {
-    console.log("🚀 Initialisation du Reader...");
-    this.book = ePub(data);
-    this.rendition = this.book.renderTo(containerId, {
-        width: "100%",
-        height: "100%",
-        flow: "paginated",
-        manager: "default"
-    });
+    init: function(data, containerId) {
+        console.log("🚀 Initialisation du Reader...");
+        this.book = ePub(data);
+        this.rendition = this.book.renderTo(containerId, {
+            width: "100%",
+            height: "100%",
+            flow: "paginated",
+            manager: "default",
+            allowScriptedContent: true // 🛡️ Important pour le mobile
+        });
 
-    // CRUCIAL : On n'applique rien avant que le livre ne soit prêt
-    return this.rendition.display().then(() => {
-        console.log("📖 Livre affiché à l'écran");
-        this.applyTheme();
-        this.setupNavigation();
-        
-        // On force un recalcul des dimensions pour éviter le blocage à 0%
-        setTimeout(() => {
-            this.rendition.resize();
-            console.log("📐 Redimensionnement forcé effectué");
-        }, 500);
-    });
-}
-applyTheme: function() {
-    console.log("🎨 Tentative d'injection forcée du design Kindle...");
-    
-    // On définit le CSS en texte brut
-    const css = `
-        body {
-            font-family: 'Georgia', serif !important;
-            font-size: 18px !important;
-            color: #1a1a1a !important;
-            line-height: 1.6 !important;
-            text-align: justify !important;
-            padding: 0 8% !important;
-            background-color: white !important;
-        }
-    `;
+        // On attend que le livre soit affiché pour tout activer
+        return this.rendition.display().then(() => {
+            console.log("📖 Livre affiché à l'écran");
+            this.applyTheme();
+            this.injectKindleStyles(); // 💉 Injection forcée pour le design
+            this.setupNavigation();
+            
+            setTimeout(() => {
+                this.rendition.resize();
+                console.log("📐 Redimensionnement forcé effectué");
+            }, 500);
+        });
+    }, // <-- Bien mettre la virgule ici
 
-    // On l'injecte directement dans le moteur de rendu
-    this.rendition.themes.default(css); 
-    // .default() est souvent plus efficace que .register() pour contourner le sandbox
-    
-    console.log("✅ Design injecté via themes.default()");
-}
+    applyTheme: function() {
+        console.log("🎨 Tentative d'injection via themes.default...");
+        const css = `
+            body {
+                font-family: 'Georgia', serif !important;
+                font-size: 18px !important;
+                color: #1a1a1a !important;
+                line-height: 1.6 !important;
+                text-align: justify !important;
+                padding: 0 8% !important;
+                background-color: white !important;
+            }
+        `;
+        this.rendition.themes.default(css); 
+        console.log("✅ Design envoyé via themes.default()");
+    }, // <-- Bien mettre la virgule ici
 
     setupNavigation: function() {
-        console.log("🖱️ Configuration des événements de clic...");
-        
+        console.log("🖱️ Configuration de la navigation par zone...");
         this.rendition.on("click", (e) => {
+            const viewer = document.getElementById("epub-viewer");
+            const width = viewer.offsetWidth;
             const x = e.clientX;
-            const width = window.innerWidth;
-            
-            console.log(`Click détecté en X: ${x} | Largeur écran: ${width}`);
-            
+
+            console.log(`Click relatif détecté - X: ${x}, Largeur: ${width}`);
+
             if (x < width * 0.3) {
-                console.log("⬅️ Zone gauche cliquée : Page précédente");
                 this.prev();
             } else {
-                console.log("➡️ Zone droite cliquée : Page suivante");
                 this.next();
             }
         });
 
         this.rendition.on("relocated", (location) => {
             const percent = Math.round(location.start.percentage * 100);
-            console.log(`📍 Position changée : ${percent}%`);
+            console.log(`📍 Position réelle : ${percent}%`);
             const label = document.getElementById("page-percent");
             if (label) label.textContent = `${percent}%`;
         });
-    },
+    }, // <-- Bien mettre la virgule ici
+
+    injectKindleStyles: function() {
+        console.log("💉 Tentative d'injection directe dans l'iframe...");
+        try {
+            const iframe = document.querySelector('#epub-viewer iframe');
+            if (iframe && iframe.contentDocument) {
+                const iframeDoc = iframe.contentDocument;
+                const styleId = "kindle-styles";
+                
+                if (!iframeDoc.getElementById(styleId)) {
+                    const style = iframeDoc.createElement('style');
+                    style.id = styleId;
+                    style.innerHTML = `
+                        body {
+                            font-family: 'Georgia', serif !important;
+                            font-size: 19px !important;
+                            line-height: 1.6 !important;
+                            text-align: justify !important;
+                            padding: 0 5% !important;
+                            color: #1a1a1a !important;
+                            background-color: white !important;
+                        }
+                    `;
+                    iframeDoc.head.appendChild(style);
+                    console.log("✅ Style Kindle injecté directement dans l'iframe");
+                }
+            }
+        } catch (e) {
+            console.warn("⚠️ Injection directe bloquée (Cross-Origin), on se fie au thème par défaut.");
+        }
+    }, // <-- Bien mettre la virgule ici
 
     next: function() { 
         console.log("Appel de next()");
         this.rendition.next(); 
-    },
+    }, // <-- Bien mettre la virgule ici
+
     prev: function() { 
         console.log("Appel de prev()");
         this.rendition.prev(); 
