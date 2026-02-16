@@ -17,6 +17,7 @@ const Reader = {
     },
 
     init: function(data, containerId) {
+        console.log("🚀 Initialisation du Reader...");
         this.book = ePub(data);
         this.rendition = this.book.renderTo(containerId, {
             width: "100%",
@@ -27,35 +28,51 @@ const Reader = {
 
         this.applyTheme();
         this.setupNavigation();
+        console.log("✅ Reader initialisé et navigation configurée.");
         return this.rendition.display();
     },
 
     applyTheme: function() {
+        console.log("🎨 Application du thème Kindle...");
         this.rendition.themes.register("kindle", this.settings.baseStyles);
         this.rendition.themes.select("kindle");
     },
 
     setupNavigation: function() {
-        // Navigation par clic (Kindle Style)
+        console.log("🖱️ Configuration des événements de clic...");
+        
         this.rendition.on("click", (e) => {
             const x = e.clientX;
             const width = window.innerWidth;
-            if (x < width * 0.3) this.prev();
-            else this.next();
+            
+            console.log(`Click détecté en X: ${x} | Largeur écran: ${width}`);
+            
+            if (x < width * 0.3) {
+                console.log("⬅️ Zone gauche cliquée : Page précédente");
+                this.prev();
+            } else {
+                console.log("➡️ Zone droite cliquée : Page suivante");
+                this.next();
+            }
         });
 
-        // Mise à jour de la progression
         this.rendition.on("relocated", (location) => {
             const percent = Math.round(location.start.percentage * 100);
+            console.log(`📍 Position changée : ${percent}%`);
             const label = document.getElementById("page-percent");
             if (label) label.textContent = `${percent}%`;
         });
     },
 
-    next: function() { this.rendition.next(); },
-    prev: function() { this.rendition.prev(); }
+    next: function() { 
+        console.log("Appel de next()");
+        this.rendition.next(); 
+    },
+    prev: function() { 
+        console.log("Appel de prev()");
+        this.rendition.prev(); 
+    }
 };
 
-// Exposer les fonctions globalement pour les boutons HTML
 window.nextPage = () => Reader.next();
 window.prevPage = () => Reader.prev();
