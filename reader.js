@@ -23,7 +23,9 @@ const Reader = {
             width: "100%",
             height: "100%",
             flow: "paginated",
-            manager: "default"
+            manager: "default",
+            // AJOUTE CETTE LIGNE CI-DESSOUS 🛡️
+        allowScriptedContent: true
         });
 
         this.applyTheme();
