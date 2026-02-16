@@ -16,29 +16,51 @@ const Reader = {
         }
     },
 
-    init: function(data, containerId) {
-        console.log("🚀 Initialisation du Reader...");
-        this.book = ePub(data);
-        this.rendition = this.book.renderTo(containerId, {
-            width: "100%",
-            height: "100%",
-            flow: "paginated",
-            manager: "default",
-            // AJOUTE CETTE LIGNE CI-DESSOUS 🛡️
-        allowScriptedContent: true
-        });
+init: function(data, containerId) {
+    console.log("🚀 Initialisation du Reader...");
+    this.book = ePub(data);
+    this.rendition = this.book.renderTo(containerId, {
+        width: "100%",
+        height: "100%",
+        flow: "paginated",
+        manager: "default"
+    });
 
+    // CRUCIAL : On n'applique rien avant que le livre ne soit prêt
+    return this.rendition.display().then(() => {
+        console.log("📖 Livre affiché à l'écran");
         this.applyTheme();
         this.setupNavigation();
-        console.log("✅ Reader initialisé et navigation configurée.");
-        return this.rendition.display();
-    },
+        
+        // On force un recalcul des dimensions pour éviter le blocage à 0%
+        setTimeout(() => {
+            this.rendition.resize();
+            console.log("📐 Redimensionnement forcé effectué");
+        }, 500);
+    });
+}
+applyTheme: function() {
+    console.log("🎨 Tentative d'injection forcée du design Kindle...");
+    
+    // On définit le CSS en texte brut
+    const css = `
+        body {
+            font-family: 'Georgia', serif !important;
+            font-size: 18px !important;
+            color: #1a1a1a !important;
+            line-height: 1.6 !important;
+            text-align: justify !important;
+            padding: 0 8% !important;
+            background-color: white !important;
+        }
+    `;
 
-    applyTheme: function() {
-        console.log("🎨 Application du thème Kindle...");
-        this.rendition.themes.register("kindle", this.settings.baseStyles);
-        this.rendition.themes.select("kindle");
-    },
+    // On l'injecte directement dans le moteur de rendu
+    this.rendition.themes.default(css); 
+    // .default() est souvent plus efficace que .register() pour contourner le sandbox
+    
+    console.log("✅ Design injecté via themes.default()");
+}
 
     setupNavigation: function() {
         console.log("🖱️ Configuration des événements de clic...");
