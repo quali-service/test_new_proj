@@ -114,17 +114,15 @@ window.openReader = function(url, title) {
                 return res.arrayBuffer();
             })
             .then(data => {
-                if (epubCont) epubCont.innerHTML = ""; 
-                const book = ePub(data);
-                window.rendition = book.renderTo("epub-viewer", {
-                    width: "100%",
-                    height: "100%",
-                    flow: "paginated",
-                    manager: "default"
-                });
-                window.rendition.display();
-                console.log("✨ Livre chargé avec succès via ArrayBuffer");
-            })
+    if (epubCont) epubCont.innerHTML = ""; 
+    
+    // On utilise ton fichier reader.js pour faire le travail proprement
+    Reader.init(data, "epub-viewer").then(() => {
+        // On synchronise window.rendition pour les flèches clavier et boutons
+        window.rendition = Reader.rendition;
+        console.log("✨ Lecteur initialisé via Reader.js (Navigation par clic active)");
+    });
+})
             .catch(err => {
                 console.error("❌ Erreur de lecture :", err);
                 if (epubCont) epubCont.innerHTML = `<div class='p-10 text-center text-rose-500 font-bold'>Impossible d'ouvrir le livre : ${err.message}</div>`;
