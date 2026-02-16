@@ -113,17 +113,18 @@ window.openReader = function(url, title) {
                 if (!res.ok) throw new Error("Accès refusé (401). Vérifiez vos permissions Storage.");
                 return res.arrayBuffer();
             })
-            .then(data => {
-    if (epubCont) epubCont.innerHTML = ""; 
-    
-    // On utilise ton fichier reader.js pour faire le travail proprement
-    Reader.init(data, "epub-viewer").then(() => {
-        // On synchronise window.rendition pour les flèches clavier et boutons
-        window.rendition = Reader.rendition;
-        console.log("✨ Lecteur initialisé via Reader.js (Navigation par clic active)");
-    });
-})
-            .catch(err => {
+     .then(data => {
+                console.log("📦 Données ePub reçues, taille :", data.byteLength, "octets");
+                if (epubCont) epubCont.innerHTML = ""; 
+                
+                // APPEL DU READER (C'est ici que la magie opère)
+                Reader.init(data, "epub-viewer").then(() => {
+                    window.rendition = Reader.rendition;
+                    console.log("🚀 Reader.init terminé (Design Kindle injecté)");
+                }).catch(err => {
+                    console.error("❌ Erreur d'initialisation du Reader:", err);
+                });
+            })      .catch(err => {
                 console.error("❌ Erreur de lecture :", err);
                 if (epubCont) epubCont.innerHTML = `<div class='p-10 text-center text-rose-500 font-bold'>Impossible d'ouvrir le livre : ${err.message}</div>`;
             });
