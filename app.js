@@ -281,3 +281,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     window.showSection('form-section');
 });
+
+// Filet de sécurité pour le tactile (à mettre dans app.js)
+document.getElementById("epub-viewer").addEventListener("touchend", function(e) {
+    const touch = e.changedTouches[0];
+    const width = this.offsetWidth;
+    const x = touch.clientX;
+
+    if (x < width * 0.3) {
+        Reader.prev();
+    } else {
+        Reader.next();
+    }
+}, false);
