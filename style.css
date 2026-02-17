@@ -61,7 +61,7 @@
     
     /* Centrage horizontal */
     margin: 20px auto; 
-    
+    pointer-events: auto;
     /* Look Smartphone */
     background-color: white !important;
     border: 2px solid #ffff; /* Bordure foncée style titane */
