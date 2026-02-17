@@ -49,36 +49,30 @@ const Reader = {
         return this.rendition.display();
     },
 
-    setupNavigation: function(containerId) {
-        const container = document.getElementById(containerId);
+   updateProgress: function(location) {
+    const loc = location || this.rendition.currentLocation();
+    if (loc && loc.start) {
+        const percent = this.book.locations.percentageFromCfi(loc.start.cfi);
+        const percentage = Math.floor(percent * 100);
+        
+        // Mise à jour du texte
+        const label = document.getElementById("page-percent");
+        if (label) label.textContent = `${percentage}%`;
 
-        // 1. Log des clics souris
-        this.rendition.on("click", (e) => {
-            const width = container.offsetWidth;
-            const x = e.clientX;
-            const zone = (x < width * 0.3) ? "GAUCHE (Prev)" : (x > width * 0.7) ? "DROITE (Next)" : "CENTRE (Menu?)";
-            
-            console.log(`🖱️ UX Clic : x=${x}px | Largeur Totale=${width}px | Zone détectée : ${zone}`);
-
-            if (x < width * 0.3) this.prev();
-            else if (x > width * 0.7) this.next();
-        });
-
-        // 2. Log du clavier
-        window.addEventListener("keyup", (e) => {
-            console.log(`⌨️ UX Clavier : Touche pressée = ${e.key}`);
-            if (e.key === "ArrowRight") this.next();
-            if (e.key === "ArrowLeft") this.prev();
-        });
-    },
+        // Mise à jour de la barre visuelle
+        const bar = document.getElementById("progress-bar");
+        if (bar) bar.style.width = `${percentage}%`;
+    }
+},
 
     injectKindleStyles: function() {
         console.log("💉 UX Style : Tentative d'injection CSS Kindle...");
         this.rendition.themes.default({
             "body": {
-                "font-family": "'Bitter', serif !important",
+               "font-family": "'Bitter', serif !important",
                 "font-size": "19px !important",
-                "color": "#1a1a1a !important"
+                "max-width": "800px !important", // Optionnel : évite que les lignes soient trop longues sur écran large
+                "margin": "0 auto !important"
             }
         });
         console.log("✅ UX Style : CSS appliqué.");
