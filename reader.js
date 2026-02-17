@@ -89,7 +89,7 @@ const Reader = {
         if (e.key === "ArrowRight") this.next();
         if (e.key === "ArrowLeft") this.prev();
     });
-}
+},
 
     updateProgress: function(location) {
         const loc = location || this.rendition.currentLocation();
@@ -130,3 +130,5 @@ const Reader = {
 
 window.nextPage = () => Reader.next();
 window.prevPage = () => Reader.prev();
+
+window.Reader = Reader;
