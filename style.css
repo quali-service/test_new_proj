@@ -53,10 +53,43 @@
     background: #94a3b8;
 }
 
+/* --- SIMULATION IPHONE 17 PRO MAX --- */
 #epub-viewer {
-    min-height: 75vh;
-    display: block !important;
+    /* Dimensions cibles */
+    width: 440px; 
+    height: 950px;
+    
+    /* Centrage horizontal */
+    margin: 20px auto; 
+    
+    /* Look Smartphone */
     background-color: white !important;
+    border: 12px solid #1e293b; /* Bordure foncée style titane */
+    border-radius: 55px;        /* Coins très arrondis */
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    
+    /* Sécurité */
+    overflow: hidden;
+    position: relative;
+    display: block !important;
+    
+    /* Responsive : s'adapte si l'écran du PC est trop petit */
+    max-width: 95vw;
+    max-height: 85vh; 
+}
+
+/* Optionnel : Simuler la Dynamic Island */
+#epub-viewer::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 35px;
+    background: #1e293b;
+    border-radius: 20px;
+    z-index: 10;
 }
 
 /* Force les images à l'intérieur de l'epub à ne pas déborder */
