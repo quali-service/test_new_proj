@@ -64,7 +64,7 @@
     
     /* Look Smartphone */
     background-color: white !important;
-    border: 12px solid #1e293b; /* Bordure foncée style titane */
+    border: 2px solid #ffff; /* Bordure foncée style titane */
     border-radius: 55px;        /* Coins très arrondis */
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     
