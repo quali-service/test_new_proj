@@ -4,20 +4,28 @@ const Reader = {
         console.log("🚀 Initialisation du Reader...");
         this.book = ePub(data);
         
-        // On revient à une configuration standard pour éviter le crash ViewManager
         this.rendition = this.book.renderTo(containerId, {
             width: "100%",
             height: "100%",
-            flow: "paginated"
+            flow: "paginated",
+            allowScriptedContent: true // Autorise les scripts
         });
 
-        // CRUCIAL : On ajoute "return" pour que app.js puisse attendre la fin de l'init
+        // --- LA LIGNE À AJOUTER EST JUSTE ICI ---
+        this.rendition.hooks.content.register((contents) => {
+            const frame = contents.document.defaultView.frameElement;
+            if (frame) {
+                frame.setAttribute("sandbox", "allow-same-origin allow-scripts");
+                console.log("🔓 Permissions sandbox forcées sur l'iframe");
+            }
+        });
+        // ----------------------------------------
+
         return this.rendition.display().then(() => {
             console.log("📖 Livre affiché");
             this.injectKindleStyles();
             this.setupNavigation();
             
-            // On force un recalcul pour éviter le blocage à 0%
             setTimeout(() => {
                 if(this.rendition) this.rendition.resize();
             }, 500);
