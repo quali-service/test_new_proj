@@ -13,7 +13,8 @@ const Reader = {
             width: "100%",
             height: "100%",
             flow: "paginated",
-            manager: "default"
+            manager: "default",
+            spread:"none"
         });
 
         // Surveillance du chargement global
