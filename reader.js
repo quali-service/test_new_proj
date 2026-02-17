@@ -49,27 +49,47 @@ const Reader = {
         });
     },
 
-    // --- LA FONCTION QUI MANQUAIT ---
-    setupNavigation: function(containerId) {
-        console.log("🖱️ Setup Navigation activé");
-        const container = document.getElementById(containerId);
+   setupNavigation: function(containerId) {
+    console.log("🖱️ Setup Navigation (PC + Mobile) activé");
+    const container = document.getElementById(containerId);
 
-        // Navigation par clic sur l'iframe
-        this.rendition.on("click", (e) => {
-            const width = container.offsetWidth;
-            const x = e.clientX; 
-            
-            // Logique Kindle : 25% gauche = retour, reste = suivant
-            if (x < width * 0.25) this.prev();
-            else this.next();
-        });
+    // Fonction unique pour gérer le clic ou le touch
+    const handleNavigation = (clientX) => {
+        const width = container.offsetWidth;
+        // On récupère la position relative par rapport au conteneur
+        const rect = container.getBoundingClientRect();
+        const x = clientX - rect.left;
 
-        // Navigation clavier
-        window.addEventListener("keyup", (e) => {
-            if (e.key === "ArrowRight") this.next();
-            if (e.key === "ArrowLeft") this.prev();
-        });
-    },
+        console.log(`👆 Navigation : x=${Math.round(x)} / largeur=${width}`);
+
+        if (x < width * 0.3) {
+            this.prev();
+        } else {
+            this.next();
+        }
+    };
+
+    // 1. Événement pour Ordinateur
+    this.rendition.on("click", (e) => {
+        handleNavigation(e.clientX);
+    });
+
+    // 2. Événement pour Mobile (Touch)
+    // On écoute le "touchend" à l'intérieur de l'iframe
+    this.rendition.on("touchend", (e) => {
+        const touch = e.changedTouches[0];
+        handleNavigation(touch.clientX);
+        
+        // Empêche le comportement par défaut (comme le zoom)
+        if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+
+    // 3. Clavier (PC uniquement)
+    window.addEventListener("keyup", (e) => {
+        if (e.key === "ArrowRight") this.next();
+        if (e.key === "ArrowLeft") this.prev();
+    });
+}
 
     updateProgress: function(location) {
         const loc = location || this.rendition.currentLocation();
