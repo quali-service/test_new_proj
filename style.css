@@ -78,19 +78,7 @@
     max-height: 85vh; 
 }
 
-/* Optionnel : Simuler la Dynamic Island */
-#epub-viewer::before {
-    content: "";
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 120px;
-    height: 35px;
-    background: #1e293b;
-    border-radius: 20px;
-    z-index: 10;
-}
+
 
 /* Force les images à l'intérieur de l'epub à ne pas déborder */
 #epub-viewer img {
