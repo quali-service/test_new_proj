@@ -49,40 +49,47 @@ const Reader = {
         });
     },
 
-   setupNavigation: function(containerId) {
+  setupNavigation: function(containerId) {
     const container = document.getElementById(containerId);
-
-    // On définit la logique une fois
-    const handleNav = (clientX) => {
+    
+    const handleNav = (source, clientX) => {
         const width = container.offsetWidth;
-        // On vérifie si x est relatif à l'iframe ou au parent
-        // Dans une iframe Epub.js, clientX est souvent déjà relatif au viewport de l'iframe
-        if (clientX < width * 0.3) {
+        const rect = container.getBoundingClientRect();
+        // Calcul du X relatif au conteneur
+        const xRelative = clientX - rect.left;
+
+        // LOG ERUDA : Tu verras ça s'afficher sur ton tel
+        console.log(`[NAV] Source: ${source} | X_Brut: ${Math.round(clientX)} | X_Relatif: ${Math.round(xRelative)} | Seuil_Gauche: ${Math.round(width * 0.3)}`);
+
+        if (xRelative < width * 0.3) {
+            console.log("⬅️ Commande : PREV");
             this.prev();
         } else {
+            console.log("➡️ Commande : NEXT");
             this.next();
         }
     };
 
-    // 1. Clic (Gère aussi le "Tap" de base sur beaucoup de navigateurs)
+    // 1. Clic Souris / Tap Standard
     this.rendition.on("click", (e) => {
-        handleNav(e.clientX);
+        console.log("🖱️ Event Click détecté");
+        handleNav("CLICK", e.clientX);
     });
 
-    // 2. Touch (Spécifique Mobile pour la réactivité)
+    // 2. Toucher Mobile (Spécifique)
     this.rendition.on("touchend", (e) => {
-        // Epub.js enveloppe parfois l'événement, on cherche le touch natif
+        console.log("📱 Event Touchend détecté");
+        // On vérifie où se cachent les coordonnées selon le navigateur
         const touch = e.changedTouches ? e.changedTouches[0] : e;
-        handleNav(touch.clientX);
+        if (touch && touch.clientX !== undefined) {
+            handleNav("TOUCH", touch.clientX);
+        } else {
+            console.error("❌ Touch détecté mais clientX est indéfini", e);
+        }
     });
 
-    // 3. Clavier (On vérifie si l'event n'existe pas déjà pour éviter les doublons)
-    const keyHandler = (e) => {
-        if (e.key === "ArrowRight") this.next();
-        if (e.key === "ArrowLeft") this.prev();
-    };
-    window.removeEventListener("keyup", keyHandler); // Nettoyage
-    window.addEventListener("keyup", keyHandler);
+    // 3. Log de vérification au démarrage
+    console.log("✅ Navigation initialisée sur :", containerId, "Largeur :", container.offsetWidth);
 },
 
     updateProgress: function(location) {
