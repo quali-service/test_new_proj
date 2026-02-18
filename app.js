@@ -155,6 +155,9 @@ function handleKeyNav(e) {
 
 // --- 4. LOGIQUE QUIZ ---
 
+// Variable globale pour stocker l'ID de la dernière question vue
+let lastQuestionId = null;
+
 window.loadQuestion = async function() {
     const loading = document.getElementById('loading');
     const content = document.getElementById('quiz-content');
@@ -172,11 +175,29 @@ window.loadQuestion = async function() {
     try {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/questions?select=*`, { headers: HEADERS });
         const questions = await response.json();
+        
         if (!questions || questions.length === 0) {
             loading.innerHTML = "<p class='p-8 text-slate-400 text-center'>Aucune question disponible.</p>";
             return;
         }
-        renderQuiz(questions[Math.floor(Math.random() * questions.length)]);
+
+        // --- LOGIQUE ANTI-REPETITION ---
+        let selectedQuestion;
+        
+        // Si on a plus d'une question, on essaie d'en trouver une différente de la dernière
+        if (questions.length > 1) {
+            do {
+                selectedQuestion = questions[Math.floor(Math.random() * questions.length)];
+            } while (selectedQuestion.id === lastQuestionId); 
+        } else {
+            selectedQuestion = questions[0];
+        }
+
+        // On mémorise l'ID pour le prochain tirage
+        lastQuestionId = selectedQuestion.id;
+        
+        renderQuiz(selectedQuestion);
+
     } catch (err) {
         if (loading) loading.innerHTML = `<p class="text-rose-500 font-bold p-8 text-center">Erreur de connexion</p>`;
     }
