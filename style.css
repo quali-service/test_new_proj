@@ -53,29 +53,34 @@
     background: #94a3b8;
 }
 
-/* --- SIMULATION IPHONE 17 PRO MAX --- */
 #epub-viewer {
-    /* Dimensions cibles */
-    width: 440px; 
-    height: 950px;
+    /* Dimensions : On utilise 'aspect-ratio' pour garder la forme smartphone */
+    width: 100%;
+    max-width: 440px; 
+    aspect-ratio: 9 / 19.5; /* Ratio réel de l'iPhone 17 Pro Max */
     
-    /* Centrage horizontal */
+    /* Centrage */
     margin: 20px auto; 
-    pointer-events: auto;
+    
     /* Look Smartphone */
     background-color: white !important;
-    border: 2px solid #ffff; /* Bordure foncée style titane */
-    border-radius: 55px;        /* Coins très arrondis */
+    border: 8px solid #1a1a1a; /* Bordure un peu plus épaisse pour le style */
+    border-radius: 50px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     
-    /* Sécurité */
-    overflow: hidden;
+    /* Crucial pour l'Overlay et Epub.js */
     position: relative;
+    overflow: hidden; /* Garde le texte à l'intérieur des coins arrondis */
     display: block !important;
     
-    /* Responsive : s'adapte si l'écran du PC est trop petit */
-    max-width: 95vw;
-    max-height: 85vh; 
+    /* Sécurité pour les petits écrans */
+    max-height: 80vh; 
+}
+
+/* On s'assure que l'iframe remplit bien ce faux téléphone */
+#epub-viewer iframe {
+    width: 100% !important;
+    height: 100% !important;
 }
 
 
