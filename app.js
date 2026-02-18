@@ -107,17 +107,15 @@ window.openReader = function(url, title) {
             epubCont.innerHTML = "<div class='flex flex-col items-center justify-center h-full'><div class='animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4'></div><p class='text-slate-500'>Chargement sécurisé...</p></div>";
         }
 
-        // 🛡️ CORRECTION 401 : On télécharge avec les headers d'autorisation
         fetch(url, { headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` } })
             .then(res => {
                 if (!res.ok) throw new Error("Accès refusé (401). Vérifiez vos permissions Storage.");
                 return res.arrayBuffer();
             })
-     .then(data => {
+            .then(data => {
                 console.log("📦 Données ePub reçues, taille :", data.byteLength, "octets");
                 if (epubCont) epubCont.innerHTML = ""; 
                 
-                // APPEL DU READER (C'est ici que la magie opère)
                 Reader.init(data, "epub-viewer").then(() => {
                     window.rendition = Reader.rendition;
                     console.log("🚀 Reader.init terminé (Design Kindle injecté)");
@@ -228,6 +226,7 @@ function displayResults(isCorrect, explanation) {
 // --- 5. INITIALISATION ---
 
 document.addEventListener('DOMContentLoaded', () => {
+    // A. Formulaire Ebook
     const ebookForm = document.getElementById('ebook-admin-form');
     if (ebookForm) {
         ebookForm.addEventListener('submit', async (e) => {
@@ -279,18 +278,47 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // B. Formulaire Ressources (MODIFICATION ICI)
+    const ressourceForm = document.getElementById('supabase-admin-form');
+    if (ressourceForm) {
+        ressourceForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('form-submit-btn');
+            const formData = new FormData(e.target);
+            
+            const payload = {
+                titre: formData.get('titre'),
+                nature: formData.get('nature'),
+                apprentissage: formData.get('apprentissage'),
+                url: formData.get('url'),
+                created_at: new Date().toISOString()
+            };
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = "Envoi... ⏳";
+
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/notes_de_lecture`, {
+                    method: 'POST',
+                    headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error("Erreur lors de l'enregistrement");
+
+                alert("Ressource ajoutée !");
+                e.target.reset();
+            } catch (err) {
+                alert("Erreur : " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = "<span>Enregistrer dans Supabase</span>";
+            }
+        });
+    }
+
     window.showSection('form-section');
 });
 
-// Filet de sécurité pour le tactile (à mettre dans app.js)
-document.getElementById("epub-viewer").addEventListener("touchend", function(e) {
-    const touch = e.changedTouches[0];
-    const width = this.offsetWidth;
-    const x = touch.clientX;
-
-    if (x < width * 0.3) {
-        Reader.prev();
-    } else {
-        Reader.next();
-    }
-}, false);
+// Filet de sécurité retiré car géré par Reader.js avec Overlay
