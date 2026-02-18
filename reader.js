@@ -49,47 +49,44 @@ const Reader = {
         });
     },
 
-  setupNavigation: function(containerId) {
+ setupNavigation: function(containerId) {
     const container = document.getElementById(containerId);
-    
-    const handleNav = (source, clientX) => {
+
+    const handleNav = (clientX) => {
         const width = container.offsetWidth;
-        const rect = container.getBoundingClientRect();
-        // Calcul du X relatif au conteneur
-        const xRelative = clientX - rect.left;
-
-        // LOG ERUDA : Tu verras ça s'afficher sur ton tel
-        console.log(`[NAV] Source: ${source} | X_Brut: ${Math.round(clientX)} | X_Relatif: ${Math.round(xRelative)} | Seuil_Gauche: ${Math.round(width * 0.3)}`);
-
-        if (xRelative < width * 0.3) {
-            console.log("⬅️ Commande : PREV");
-            this.prev();
-        } else {
-            console.log("➡️ Commande : NEXT");
-            this.next();
-        }
+        console.log(`[ACTION] X: ${clientX} | Seuil: ${width * 0.3}`);
+        if (clientX < width * 0.3) this.prev();
+        else this.next();
     };
 
-    // 1. Clic Souris / Tap Standard
+    // --- STRATÉGIE A : Écouteur Natif Epub.js ---
     this.rendition.on("click", (e) => {
-        console.log("🖱️ Event Click détecté");
-        handleNav("CLICK", e.clientX);
+        console.log("👉 Click Epub.js");
+        handleNav(e.clientX);
     });
 
-    // 2. Toucher Mobile (Spécifique)
-    this.rendition.on("touchend", (e) => {
-        console.log("📱 Event Touchend détecté");
-        // On vérifie où se cachent les coordonnées selon le navigateur
-        const touch = e.changedTouches ? e.changedTouches[0] : e;
-        if (touch && touch.clientX !== undefined) {
-            handleNav("TOUCH", touch.clientX);
-        } else {
-            console.error("❌ Touch détecté mais clientX est indéfini", e);
+    // --- STRATÉGIE B : Injection directe dans l'Iframe (Le "Forceur") ---
+    this.rendition.on("rendered", () => {
+        const iframe = container.querySelector('iframe');
+        if (iframe) {
+            console.log("💉 Injection du détecteur dans l'Iframe...");
+            
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+
+            // Détection du Touch sur le document interne de l'iframe
+            doc.addEventListener('touchend', (e) => {
+                const touch = e.changedTouches[0];
+                console.log("📱 Touch direct Iframe détecté !");
+                handleNav(touch.clientX);
+            }, false);
+
+            // Détection du Clic sur le document interne
+            doc.addEventListener('click', (e) => {
+                console.log("🖱️ Click direct Iframe détecté !");
+                handleNav(e.clientX);
+            }, false);
         }
     });
-
-    // 3. Log de vérification au démarrage
-    console.log("✅ Navigation initialisée sur :", containerId, "Largeur :", container.offsetWidth);
 },
 
     updateProgress: function(location) {
