@@ -50,45 +50,39 @@ const Reader = {
     },
 
    setupNavigation: function(containerId) {
-    console.log("🖱️ Setup Navigation (PC + Mobile) activé");
     const container = document.getElementById(containerId);
 
-    // Fonction unique pour gérer le clic ou le touch
-    const handleNavigation = (clientX) => {
+    // On définit la logique une fois
+    const handleNav = (clientX) => {
         const width = container.offsetWidth;
-        // On récupère la position relative par rapport au conteneur
-        const rect = container.getBoundingClientRect();
-        const x = clientX - rect.left;
-
-        console.log(`👆 Navigation : x=${Math.round(x)} / largeur=${width}`);
-
-        if (x < width * 0.3) {
+        // On vérifie si x est relatif à l'iframe ou au parent
+        // Dans une iframe Epub.js, clientX est souvent déjà relatif au viewport de l'iframe
+        if (clientX < width * 0.3) {
             this.prev();
         } else {
             this.next();
         }
     };
 
-    // 1. Événement pour Ordinateur
+    // 1. Clic (Gère aussi le "Tap" de base sur beaucoup de navigateurs)
     this.rendition.on("click", (e) => {
-        handleNavigation(e.clientX);
+        handleNav(e.clientX);
     });
 
-    // 2. Événement pour Mobile (Touch)
-    // On écoute le "touchend" à l'intérieur de l'iframe
+    // 2. Touch (Spécifique Mobile pour la réactivité)
     this.rendition.on("touchend", (e) => {
-        const touch = e.changedTouches[0];
-        handleNavigation(touch.clientX);
-        
-        // Empêche le comportement par défaut (comme le zoom)
-        if (e.cancelable) e.preventDefault();
-    }, { passive: false });
+        // Epub.js enveloppe parfois l'événement, on cherche le touch natif
+        const touch = e.changedTouches ? e.changedTouches[0] : e;
+        handleNav(touch.clientX);
+    });
 
-    // 3. Clavier (PC uniquement)
-    window.addEventListener("keyup", (e) => {
+    // 3. Clavier (On vérifie si l'event n'existe pas déjà pour éviter les doublons)
+    const keyHandler = (e) => {
         if (e.key === "ArrowRight") this.next();
         if (e.key === "ArrowLeft") this.prev();
-    });
+    };
+    window.removeEventListener("keyup", keyHandler); // Nettoyage
+    window.addEventListener("keyup", keyHandler);
 },
 
     updateProgress: function(location) {
