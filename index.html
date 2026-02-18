@@ -332,13 +332,16 @@
     </div>
 
     <div class="bg-slate-200 p-1.5 rounded-[2.5rem] shadow-inner relative">
-        <div class="bg-white rounded-[2rem] overflow-hidden shadow-2xl border border-slate-300 min-h-[75vh]">
-            <iframe id="pdf-viewer" class="w-full h-[75vh] hidden" frameborder="0"></iframe>
-            
-            <div id="epub-viewer" class="w-full h-[75vh] hidden"></div>
-            <div id="reader-overlay" sclass="absolute inset-0 z-[100] cursor-pointer hidden"></div>
-        </div>
+    <div class="bg-white rounded-[2rem] overflow-hidden shadow-2xl border border-slate-300 h-[75vh] relative">
+        
+        <iframe id="pdf-viewer" class="w-full h-full hidden" frameborder="0"></iframe>
+        
+        <div id="epub-viewer" class="w-full h-full hidden"></div>
+        
+        <div id="reader-overlay" class="absolute inset-0 z-[100] cursor-pointer hidden"></div>
+        
     </div>
+</div>
 </div>
 </section>
 
