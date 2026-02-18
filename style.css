@@ -64,8 +64,6 @@
     
     /* Look Smartphone */
     background-color: white !important;
-    border: 8px solid #1a1a1a; /* Bordure un peu plus épaisse pour le style */
-    border-radius: 50px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     
     /* Crucial pour l'Overlay et Epub.js */
