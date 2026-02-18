@@ -49,44 +49,49 @@ const Reader = {
         });
     },
 
- setupNavigation: function(containerId) {
+setupNavigation: function(containerId) {
     const container = document.getElementById(containerId);
+    const overlay = document.getElementById('reader-overlay');
+    
+    // On rend l'overlay visible et on le plaque sur le viewer
+    if (overlay) {
+        overlay.style.display = 'block';
+        // On s'assure qu'il a la même taille que le viewer
+        const rect = container.getBoundingClientRect();
+        overlay.style.top = rect.top + 'px';
+        overlay.style.left = rect.left + 'px';
+        overlay.style.width = rect.width + 'px';
+        overlay.style.height = rect.height + 'px';
+    }
 
     const handleNav = (clientX) => {
         const width = container.offsetWidth;
-        console.log(`[ACTION] X: ${clientX} | Seuil: ${width * 0.3}`);
-        if (clientX < width * 0.3) this.prev();
-        else this.next();
+        const rect = container.getBoundingClientRect();
+        const xRelatif = clientX - rect.left;
+
+        console.log(`[OVERLAY] Click à ${Math.round(xRelatif)}px sur ${width}px`);
+
+        if (xRelatif < width * 0.3) {
+            console.log("⬅️ Retour");
+            this.prev();
+        } else {
+            console.log("➡️ Suivant");
+            this.next();
+        }
     };
 
-    // --- STRATÉGIE A : Écouteur Natif Epub.js ---
-    this.rendition.on("click", (e) => {
-        console.log("👉 Click Epub.js");
+    // On écoute sur la VITRE, pas sur l'iframe
+    overlay.addEventListener('click', (e) => {
+        console.log("🖱️ Overlay Click");
         handleNav(e.clientX);
     });
 
-    // --- STRATÉGIE B : Injection directe dans l'Iframe (Le "Forceur") ---
-    this.rendition.on("rendered", () => {
-        const iframe = container.querySelector('iframe');
-        if (iframe) {
-            console.log("💉 Injection du détecteur dans l'Iframe...");
-            
-            const doc = iframe.contentDocument || iframe.contentWindow.document;
-
-            // Détection du Touch sur le document interne de l'iframe
-            doc.addEventListener('touchend', (e) => {
-                const touch = e.changedTouches[0];
-                console.log("📱 Touch direct Iframe détecté !");
-                handleNav(touch.clientX);
-            }, false);
-
-            // Détection du Clic sur le document interne
-            doc.addEventListener('click', (e) => {
-                console.log("🖱️ Click direct Iframe détecté !");
-                handleNav(e.clientX);
-            }, false);
-        }
-    });
+    overlay.addEventListener('touchend', (e) => {
+        console.log("📱 Overlay Touch");
+        const touch = e.changedTouches[0];
+        handleNav(touch.clientX);
+        e.preventDefault(); 
+    }, { passive: false });
 },
 
     updateProgress: function(location) {
