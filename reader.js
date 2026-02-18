@@ -42,11 +42,23 @@ const Reader = {
 
         // Affichage et ajustement final au format iPhone
         return this.rendition.display().then(() => {
-            setTimeout(() => {
-                this.rendition.resize();
-                console.log("📱 UI : Ajustement iPhone 17 Pro Max terminé");
-            }, 150);
-        });
+    // On augmente légèrement le délai pour attendre la fin de l'animation CSS
+    setTimeout(() => {
+        if (this.rendition) {
+            // 1. On force le calcul de la taille réelle du parent
+            this.rendition.resize();
+            
+            // 2. On s'assure que l'overlay couvre bien la nouvelle taille
+            const overlay = document.getElementById('reader-overlay');
+            if (overlay) {
+                overlay.classList.remove('hidden');
+                overlay.style.display = 'block';
+            }
+            
+            console.log("📏 Ajustement final effectué après animation");
+        }
+    }, 300); // 300ms est le "sweet spot" pour les animations mobiles
+});
     },
 
 setupNavigation: function(containerId) {
