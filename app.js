@@ -288,10 +288,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const formData = new FormData(e.target);
             
             const payload = {
-                titre: formData.get('titre'),
-                nature: formData.get('nature'),
-                apprentissage: formData.get('apprentissage'),
-                url: formData.get('url'),
+                title: formData.get('titre'),
+                type: formData.get('nature'),
+                learning: formData.get('apprentissage'),
+                source_url: formData.get('url'),
                 created_at: new Date().toISOString()
             };
 
@@ -299,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 btn.disabled = true;
                 btn.innerHTML = "Envoi... ⏳";
 
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/notes_de_lecture`, {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/ressources`, {
                     method: 'POST',
                     headers: { ...HEADERS, 'Prefer': 'return=minimal' },
                     body: JSON.stringify(payload)
