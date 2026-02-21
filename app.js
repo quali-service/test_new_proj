@@ -534,7 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.showSection('form-section');
+    window.showSection('ebook-section');
 });
 
 // Filet de sécurité retiré car géré par Reader.js avec Overlay
