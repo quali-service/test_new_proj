@@ -28,10 +28,13 @@ const Reader = {
         });
 
         // Événements de rendu
-        this.rendition.on("rendered", (section, view) => {
+        this.rendition.on("rendered", (section) => {
             console.log(`🖼️ Chapitre chargé : ${section.href}`);
             this.injectKindleStyles();
-            this.injectMobileSelectionHandler(view);
+        });
+
+        this.rendition.hooks.content.register((contents) => {
+            this.injectMobileSelectionHandler(contents);
         });
 
         this.rendition.on("relocated", (location) => {
@@ -130,12 +133,14 @@ setupNavigation: function(containerId) {
         }
     },
 
-    injectMobileSelectionHandler: function(view) {
-        const doc = view && view.document;
+    injectMobileSelectionHandler: function(contents) {
+        const doc = contents && contents.document;
         if (!doc) return;
 
-        doc.addEventListener('touchend', () => {
-            setTimeout(() => {
+        let selectionTimer = null;
+        doc.addEventListener('selectionchange', () => {
+            clearTimeout(selectionTimer);
+            selectionTimer = setTimeout(() => {
                 const sel = doc.getSelection();
                 const text = sel ? sel.toString().trim() : '';
                 const modalAlreadyOpen = !document.getElementById('highlight-modal')?.classList.contains('hidden');
@@ -143,7 +148,7 @@ setupNavigation: function(containerId) {
                     const title = document.getElementById('reader-title')?.textContent || '';
                     window.openHighlightModal(text, title);
                 }
-            }, 300);
+            }, 600);
         });
     },
 
