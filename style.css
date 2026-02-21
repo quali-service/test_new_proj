@@ -89,9 +89,11 @@
     height: auto;
 }
 #reader-overlay {
-    /* Ce paramètre permet de "traverser" l'overlay pour toucher le texte */
-    pointer-events: none !important; 
-    display: none !important; /* On peut même le masquer complètement */
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    pointer-events: none !important; /* EMPECHE DE BLOQUER LE TEXTE */
+    display: none !important;        /* LE CACHE COMPLETEMENT */
 }
 
 #epub-viewer {
