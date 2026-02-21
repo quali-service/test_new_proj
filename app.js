@@ -12,6 +12,7 @@ const HEADERS = {
 };
 
 window.rendition = null;
+let highlightModeActive = false;
 
 // --- 2. NAVIGATION & UI ---
 
@@ -146,6 +147,41 @@ window.closeReader = function() {
         epubCont.classList.add('hidden');
     }
     window.removeEventListener("keydown", handleKeyNav);
+
+    // Reset highlight mode
+    highlightModeActive = false;
+    if (window.Reader) window.Reader.setHighlightMode(false);
+    const hlBtn = document.getElementById('highlight-mode-btn');
+    if (hlBtn) {
+        hlBtn.classList.remove('bg-amber-500', 'text-white');
+        hlBtn.classList.add('bg-amber-100', 'text-amber-600');
+    }
+};
+
+window.toggleHighlightMode = function() {
+    highlightModeActive = !highlightModeActive;
+    if (window.Reader) window.Reader.setHighlightMode(highlightModeActive);
+    const btn = document.getElementById('highlight-mode-btn');
+    if (btn) {
+        if (highlightModeActive) {
+            btn.classList.remove('bg-amber-100', 'text-amber-600');
+            btn.classList.add('bg-amber-500', 'text-white');
+        } else {
+            btn.classList.remove('bg-amber-500', 'text-white');
+            btn.classList.add('bg-amber-100', 'text-amber-600');
+        }
+    }
+};
+
+window.openHighlightModal = function(text, title) {
+    document.getElementById('highlight-titre').value = title;
+    document.getElementById('highlight-text').value = text;
+    document.getElementById('highlight-modal').classList.remove('hidden');
+};
+
+window.closeHighlightModal = function() {
+    document.getElementById('highlight-modal').classList.add('hidden');
+    document.getElementById('highlight-form').reset();
 };
 
 function handleKeyNav(e) {
@@ -339,52 +375,46 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // C. Formulaire Highlight (passage EPUB)
+    const highlightForm = document.getElementById('highlight-form');
+    if (highlightForm) {
+        highlightForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('highlight-submit-btn');
+            const formData = new FormData(e.target);
+
+            const payload = {
+                title: formData.get('titre'),
+                type: formData.get('nature'),
+                learning: formData.get('apprentissage'),
+                source_url: '',
+                created_at: new Date().toISOString()
+            };
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = "Envoi... ⏳";
+
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/ressources`, {
+                    method: 'POST',
+                    headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error("Erreur lors de l'enregistrement");
+
+                window.closeHighlightModal();
+                alert("Passage enregistré !");
+            } catch (err) {
+                alert("Erreur : " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = "Enregistrer le passage";
+            }
+        });
+    }
+
     window.showSection('form-section');
-
-    // Fonction pour fermer la modale
-window.closeQuickModal = function() {
-    document.getElementById('quick-resource-modal').classList.add('hidden');
-};
-
-// Gestion de l'envoi du formulaire de la modale
-const quickForm = document.getElementById('quick-supabase-form');
-if (quickForm) {
-    quickForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('quick-submit-btn');
-        const formData = new FormData(e.target);
-        
-        // On réutilise tes noms de colonnes Supabase (title, type, learning, source_url)
-        const payload = {
-            title: formData.get('titre'),
-            type: formData.get('nature'),
-            learning: formData.get('apprentissage'),
-            source_url: window.location.href, // Ou l'URL du fichier ebook si tu préfères
-            created_at: new Date().toISOString()
-        };
-
-        try {
-            btn.disabled = true;
-            btn.innerHTML = "Envoi... ⏳";
-
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/ressources`, {
-                method: 'POST',
-                headers: { ...HEADERS, 'Prefer': 'return=minimal' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) throw new Error("Erreur lors de l'enregistrement");
-
-            alert("Ressource enregistrée ! La question sera générée.");
-            closeQuickModal();
-        } catch (err) {
-            alert("Erreur : " + err.message);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = "Enregistrer la ressource";
-        }
-    });
-}
 });
 
 // Filet de sécurité retiré car géré par Reader.js avec Overlay
