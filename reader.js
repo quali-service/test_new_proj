@@ -151,36 +151,38 @@ setupNavigation: function(containerId) {
 
     injectMobileSelectionHandler: function(contents) {
         window._dbg && _dbg("📲 inject called");
-        const doc = contents && contents.document;
-        if (!doc) { window._dbg && _dbg("❌ doc null"); return; }
-        window._dbg && _dbg("✅ doc ok, injecting...");
+        const win = contents && contents.window;
+        if (!win) { window._dbg && _dbg("❌ win null"); return; }
+        window._dbg && _dbg("✅ win ok, eval...");
 
-        const script = doc.createElement('script');
-        script.textContent = `(function() {
-            function dbg(msg) {
-                window.parent.postMessage({ type: 'epub-debug', msg: msg }, '*');
-            }
-            dbg("🔧 iframe script loaded");
-            function sendSelection() {
-                var text = (window.getSelection() || '').toString().trim();
-                dbg("📤 text: " + text.slice(0,30));
-                if (text.length > 5) {
-                    window.parent.postMessage({ type: 'epub-selection', text: text }, '*');
+        try {
+            win.eval(`(function() {
+                function dbg(msg) {
+                    window.parent.postMessage({ type: 'epub-debug', msg: msg }, '*');
                 }
-            }
-            var timer = null;
-            document.addEventListener('selectionchange', function() {
-                dbg("✏️ selectionchange");
-                clearTimeout(timer);
-                timer = setTimeout(sendSelection, 600);
-            });
-            document.addEventListener('touchend', function() {
-                dbg("👆 touchend");
-                setTimeout(sendSelection, 400);
-            });
-        })();`;
-        doc.head.appendChild(script);
-        window._dbg && _dbg("✅ script injected");
+                dbg("🔧 eval executed");
+                function sendSelection() {
+                    var text = (window.getSelection() || '').toString().trim();
+                    dbg("text: " + text.slice(0,30));
+                    if (text.length > 5) {
+                        window.parent.postMessage({ type: 'epub-selection', text: text }, '*');
+                    }
+                }
+                var timer = null;
+                document.addEventListener('selectionchange', function() {
+                    dbg("selectionchange");
+                    clearTimeout(timer);
+                    timer = setTimeout(sendSelection, 600);
+                });
+                document.addEventListener('touchend', function() {
+                    dbg("touchend");
+                    setTimeout(sendSelection, 400);
+                });
+            })()`);
+            window._dbg && _dbg("✅ eval done");
+        } catch(e) {
+            window._dbg && _dbg("❌ eval error: " + e.message);
+        }
     },
 
     injectKindleStyles: function() {
