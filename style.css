@@ -88,21 +88,14 @@
     max-width: 100%;
     height: auto;
 }
-
 #reader-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 100;
-    cursor: pointer;
-    background: transparent;
-    /* ASTUCE : On laisse passer les événements de pointeur vers l'iframe 
-       SI on fait un appui long (sélection), mais on garde le clic court */
-    pointer-events: none; 
+    /* Ce paramètre permet de "traverser" l'overlay pour toucher le texte */
+    pointer-events: none !important; 
+    display: none !important; /* On peut même le masquer complètement */
 }
 
-/* On rend l'iframe cliquable mais on gère la navigation différemment 
-   OU on garde l'overlay mais on utilise un bouton 'Mode Edition' */
 #epub-viewer {
+    /* On s'assure que le conteneur laisse passer les interactions vers l'iframe */
     pointer-events: auto !important;
 }
 
