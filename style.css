@@ -88,18 +88,7 @@
     max-width: 100%;
     height: auto;
 }
-#reader-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 100;
-    pointer-events: none !important; /* EMPECHE DE BLOQUER LE TEXTE */
-    display: none !important;        /* LE CACHE COMPLETEMENT */
-}
 
-#epub-viewer {
-    /* On s'assure que le conteneur laisse passer les interactions vers l'iframe */
-    pointer-events: auto !important;
-}
 
 @keyframes slideUp {
     from { transform: translateY(100%); }
