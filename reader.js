@@ -6,7 +6,7 @@ const Reader = {
     fontSize: 18,
     currentTheme: 'light',
 
-    init: function(data, containerId) {
+    init: function(data, containerId, startCfi) {
         console.group("🛠️ Diagnostic Initialisation");
         console.log("1. Démarrage du moteur Epub.js...");
         
@@ -62,7 +62,7 @@ const Reader = {
         });
 
         // Affichage et ajustement final au format iPhone
-        return this.rendition.display().then(() => {
+        return this.rendition.display(startCfi || undefined).then(() => {
     // On augmente légèrement le délai pour attendre la fin de l'animation CSS
     setTimeout(() => {
         if (this.rendition) {

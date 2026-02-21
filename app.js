@@ -123,11 +123,19 @@ window.openReader = function(url, title) {
             })
             .then(data => {
                 console.log("📦 Données ePub reçues, taille :", data.byteLength, "octets");
-                if (epubCont) epubCont.innerHTML = ""; 
-                
-                Reader.init(data, "epub-viewer").then(() => {
+                if (epubCont) epubCont.innerHTML = "";
+
+                const savedCfi = localStorage.getItem('epub-pos-' + url);
+
+                Reader.init(data, "epub-viewer", savedCfi).then(() => {
                     window.rendition = Reader.rendition;
-                    console.log("🚀 Reader.init terminé (Design Kindle injecté)");
+                    // Save position on every page turn
+                    window.rendition.on('relocated', (location) => {
+                        if (location.start && location.start.cfi) {
+                            localStorage.setItem('epub-pos-' + url, location.start.cfi);
+                        }
+                    });
+                    console.log("🚀 Reader.init terminé" + (savedCfi ? " — reprise à la page sauvegardée" : ""));
                 }).catch(err => {
                     console.error("❌ Erreur d'initialisation du Reader:", err);
                 });
