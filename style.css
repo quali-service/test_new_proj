@@ -89,6 +89,22 @@
     height: auto;
 }
 
+#reader-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    cursor: pointer;
+    background: transparent;
+    /* ASTUCE : On laisse passer les événements de pointeur vers l'iframe 
+       SI on fait un appui long (sélection), mais on garde le clic court */
+    pointer-events: none; 
+}
+
+/* On rend l'iframe cliquable mais on gère la navigation différemment 
+   OU on garde l'overlay mais on utilise un bouton 'Mode Edition' */
+#epub-viewer {
+    pointer-events: auto !important;
+}
 
 @keyframes slideUp {
     from { transform: translateY(100%); }
