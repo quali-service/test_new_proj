@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>eruda.init();</script>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>App Quizz & Collecte</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body class="bg-slate-50 min-h-screen text-slate-900 font-sans">
+
+
+
+   <nav class="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 z-50 lg:top-0 lg:left-0 lg:w-64 lg:h-full lg:border-t-0 lg:border-r flex lg:flex-col justify-around lg:justify-start p-2 lg:p-6 gap-2">
+    <div class="hidden lg:block mb-8 px-2">
+        <h2 class="text-xl font-black text-indigo-600 tracking-tighter uppercase">Quizz App</h2>
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Library v1.0</p>
+    </div>
+
+    <button onclick="showSection('form-section')" id="nav-form" 
+        class="flex flex-col lg:flex-row items-center gap-1 lg:gap-3 px-4 py-2 lg:py-3 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all w-full text-sm font-bold group">
+        <span class="text-xl group-hover:scale-110 transition-transform">📝</span>
+        <span>Ajouter</span>
+    </button>
+
+    <button onclick="showSection('quiz-section')" id="nav-quiz" 
+        class="flex flex-col lg:flex-row items-center gap-1 lg:gap-3 px-4 py-2 lg:py-3 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all w-full text-sm font-bold group">
+        <span class="text-xl group-hover:scale-110 transition-transform">🧠</span>
+        <span>Quiz</span>
+    </button>
+
+    <button onclick="showSection('ebook-section')" id="nav-ebook" 
+        class="flex flex-col lg:flex-row items-center gap-1 lg:gap-3 px-4 py-2 lg:py-3 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all w-full text-sm font-bold group">
+        <span class="text-xl group-hover:scale-110 transition-transform">📚</span>
+        <span>Livres</span>
+    </button>
+</nav>
+
+
+    <main class="lg:ml-64 p-4 pb-24 lg:pb-8 min-h-screen flex items-center justify-center">
+
+        
+
+        <section id="form-section" class="hidden w-full max-w-3xl animate-reveal">
+
+            <div id="admin-form-container" class="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-3xl shadow-xl border border-slate-100">
+
+    <div class="mb-8">
+
+        <h2 class="text-2xl font-bold text-slate-800">Ajouter une Ressource</h2>
+
+        <p class="text-slate-500 text-sm">Remplissez les détails pour enrichir la base de données.</p>
+
+    </div>
+
+
+
+    <form id="supabase-admin-form" class="space-y-6">
+
+        <div>
+
+            <label class="block text-sm font-semibold text-slate-700 mb-2">Titre de l'œuvre</label>
+
+            <input type="text" name="titre" required 
+
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all placeholder:text-slate-400" 
+
+                placeholder="Ex: L'État-nation et ses enjeux...">
+
+        </div>
+
+
+
+        <div>
+
+            <label class="block text-sm font-semibold text-slate-700 mb-3">Nature de l'œuvre</label>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+
+                <label class="cursor-pointer">
+
+                    <input type="radio" name="nature" value="Livre" class="peer hidden" required>
+
+                    <div class="text-center p-3 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Livre</div>
+
+                </label>
+
+                <label class="cursor-pointer">
+
+                    <input type="radio" name="nature" value="Revue" class="peer hidden">
+
+                    <div class="text-center p-3 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Revue</div>
+
+                </label>
+
+                <label class="cursor-pointer">
+
+                    <input type="radio" name="nature" value="Film" class="peer hidden">
+
+                    <div class="text-center p-3 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Film</div>
+
+                </label>
+
+                <label class="cursor-pointer">
+
+                    <input type="radio" name="nature" value="Série" class="peer hidden">
+
+                    <div class="text-center p-3 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Série</div>
+
+                </label>
+
+                <label class="cursor-pointer">
+
+                    <input type="radio" name="nature" value="Conférence" class="peer hidden">
+
+                    <div class="text-center p-3 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Conférence</div>
+
+                </label>
+
+                <label class="cursor-pointer">
+
+                    <input type="radio" name="nature" value="Étude" class="peer hidden">
+
+                    <div class="text-center p-3 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Étude</div>
+
+                </label>
+
+            </div>
+
+        </div>
+
+
+
+        <div>
+
+            <label class="block text-sm font-semibold text-slate-700 mb-2">Apprentissage (Résumé/Notes)</label>
+
+            <textarea name="apprentissage" rows="4" required
+
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all placeholder:text-slate-400" 
+
+                placeholder="Qu'avez-vous retenu d'essentiel ?"></textarea>
+
+        </div>
+
+
+
+        <div>
+
+            <label class="block text-sm font-semibold text-slate-700 mb-2">URL de la source</label>
+
+            <input type="url" name="url" 
+
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all placeholder:text-slate-400" 
+
+                placeholder="https://example.com/...">
+
+        </div>
+
+
+
+        <button type="submit" id="form-submit-btn" 
+
+            class="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-indigo-600 transform active:scale-[0.98] transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2">
+
+            <span>Enregistrer dans Supabase</span>
+
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+
+            </svg>
+
+        </button>
+
+    </form>
+
+</div>
+
+        </section>
+
+
+
+        <section id="quiz-section" class="w-full max-w-lg animate-reveal">
+
+            <div class="glass-card rounded-[2rem] shadow-xl overflow-hidden">
+
+                <div class="h-1.5 w-full bg-slate-100">
+
+                    <div id="progress-bar" class="h-full bg-indigo-500 transition-all duration-1000" style="width: 0%"></div>
+
+                </div>
+
+
+
+                <div class="p-6 sm:p-10">
+
+                    <div id="loading" class="flex flex-col items-center py-12 space-y-4">
+
+                        <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+
+                        <p class="text-slate-400 italic">Récupération de la question...</p>
+
+                    </div>
+
+                    
+
+                    <div id="quiz-content" class="hidden">
+
+                        <span class="inline-block px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-bold uppercase tracking-widest mb-4">Challenge</span>
+
+                        <h1 id="question" class="text-xl sm:text-2xl font-extrabold text-slate-800 leading-tight mb-8"></h1>
+
+                        
+
+                        <form id="quiz-form" class="space-y-3">
+
+                            <div id="options-container" class="space-y-3"></div>
+
+                            <button type="submit" id="submit-btn" class="w-full bg-slate-900 hover:bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg transition-all active:scale-[0.98] mt-6 disabled:opacity-50">Valider la réponse</button>
+
+                        </form>
+
+
+
+                        <div id="result" class="hidden mt-8 p-6 rounded-2xl animate-reveal border-2">
+
+                            <div class="flex items-center space-x-3 mb-2">
+
+                                <span id="result-icon" class="text-2xl"></span>
+
+                                <p id="result-text" class="font-bold text-lg"></p>
+
+                            </div>
+
+                            <p id="explanation" class="text-slate-600 text-sm leading-relaxed"></p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+           <button type="button" onclick="window.loadQuestion()" class="group w-full py-4 mt-6 text-sm font-semibold text-slate-400 hover:text-indigo-600 transition-all flex items-center justify-center gap-3 italic">
+    <span>🔄</span> Tirer une autre question
+</button>
+
+        </section>
+
+       <section id="ebook-section" class="hidden max-w-5xl mx-auto p-6 animate-reveal">
+    <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+        <div>
+            <h2 class="text-4xl font-extrabold text-slate-800 tracking-tight">Ma Bibliothèque</h2>
+            <p class="text-slate-500 mt-2">Gérez et lisez vos ressources PDF.</p>
+        </div>
+        <button onclick="toggleAddEbookForm()" class="group flex items-center gap-3 bg-white border-2 border-slate-100 px-6 py-3 rounded-2xl font-bold text-slate-700 hover:border-indigo-500 hover:text-indigo-600 transition-all shadow-sm">
+            <span id="toggle-icon" class="text-indigo-500 transition-transform group-hover:rotate-90">➕</span>
+            <span id="toggle-text">Ajouter un livre</span>
+        </button>
+    </div>
+
+    <div id="add-ebook-container" class="hidden mb-12 animate-reveal">
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-2 h-full bg-indigo-500"></div>
+            
+            <form id="ebook-admin-form" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Titre du livre</label>
+                        <input type="text" name="title" required class="w-full px-4 py-3 rounded-2xl border-2 border-slate-50 focus:border-indigo-500 focus:bg-white bg-slate-50/50 outline-none transition-all" placeholder="Ex: Histoire de l'Art">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">Auteur</label>
+                            <input type="text" name="author" class="w-full px-4 py-3 rounded-2xl border-2 border-slate-50 focus:border-indigo-500 bg-slate-50/50 outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">Catégorie</label>
+                            <input type="text" name="category" class="w-full px-4 py-3 rounded-2xl border-2 border-slate-50 focus:border-indigo-500 bg-slate-50/50 outline-none transition-all">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">URL de la Couverture (Image)</label>
+                        <input type="url" name="cover_url" class="w-full px-4 py-3 rounded-2xl border-2 border-slate-50 focus:border-indigo-500 bg-slate-50/50 outline-none transition-all" placeholder="https://...">
+                    </div>
+                 <div>
+    <label class="block text-sm font-bold text-slate-700 mb-2">Fichier Ebook (URL .epub ou .pdf)</label>
+    <input type="file" name="ebook_file" id="ebook-file-input" accept=".pdf,.epub" required 
+           class="w-full px-4 py-3 rounded-2xl border-2 border-slate-50 focus:border-indigo-500 bg-slate-50/50 outline-none transition-all" 
+           placeholder="fichier .epub ou .pdf">
+    <p class="text-[10px] text-slate-400 mt-1 italic">Note : Le format EPUB nécessite un lecteur spécial intégré.</p>
+</div>
+                    <button type="submit" id="ebook-submit-btn" class="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-indigo-600 transform active:scale-95 transition-all shadow-lg shadow-indigo-100">
+                        Enregistrer dans la bibliothèque
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="ebook-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+
+    <div id="reader-container" class="hidden animate-reveal">
+    <div class="flex items-center justify-between mb-6">
+        <button onclick="closeReader()" class="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all shadow-sm">
+            <span>←</span> Retour
+        </button>
+        <h3 id="reader-title" class="font-black text-slate-800 truncate px-4 flex-1 text-center"></h3>
+        <div id="epub-nav" class="hidden flex gap-2">
+            <button id="highlight-mode-btn" onclick="toggleHighlightMode()"
+                title="Activer le mode surlignage"
+                class="p-2 bg-amber-100 text-amber-600 rounded-lg text-sm font-bold transition-all">✏️</button>
+            <button onclick="rendition.prev()" class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">◀</button>
+            <button onclick="rendition.next()" class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">▶</button>
+        </div>
+    </div>
+
+    <div class="bg-slate-200 p-1.5 rounded-[2.5rem] shadow-inner relative">
+    <div class="bg-white rounded-[2rem] overflow-hidden shadow-2xl border border-slate-300 h-[75vh] relative">
+        
+        <iframe id="pdf-viewer" class="w-full h-full hidden" frameborder="0"></iframe>
+        
+        <div id="epub-viewer" class="w-full h-full hidden"></div>
+        
+        <div id="reader-overlay" class="absolute inset-0 z-[100] cursor-pointer hidden"></div>
+        
+    </div>
+</div>
+</div>
+</section>
+
+    </main>
+
+
+    <script src="reader.js"></script>
+    <script src="app.js"></script>
+
+    <!-- Modal surlignage -->
+    <div id="highlight-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4"
+         onclick="if(event.target===this)closeHighlightModal()">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 space-y-5">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold text-slate-800">Enregistrer ce passage</h3>
+                <button onclick="closeHighlightModal()" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">&times;</button>
+            </div>
+
+            <form id="highlight-form" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Titre de l'œuvre</label>
+                    <input type="text" id="highlight-titre" name="titre" required
+                        class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-3">Nature de l'œuvre</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="nature" value="Livre" class="peer hidden" required>
+                            <div class="text-center p-2 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Livre</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="nature" value="Revue" class="peer hidden">
+                            <div class="text-center p-2 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Revue</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="nature" value="Film" class="peer hidden">
+                            <div class="text-center p-2 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Film</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="nature" value="Série" class="peer hidden">
+                            <div class="text-center p-2 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Série</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="nature" value="Conférence" class="peer hidden">
+                            <div class="text-center p-2 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Conférence</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="nature" value="Étude" class="peer hidden">
+                            <div class="text-center p-2 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Étude</div>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Passage sélectionné</label>
+                    <textarea id="highlight-text" name="apprentissage" rows="4" required
+                        class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all placeholder:text-slate-400"
+                        placeholder="Texte sélectionné..."></textarea>
+                </div>
+
+                <button type="submit" id="highlight-submit-btn"
+                    class="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-indigo-600 transform active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-2">
+                    <span>Enregistrer le passage</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+</body>
+
+</html>
