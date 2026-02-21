@@ -340,6 +340,51 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.showSection('form-section');
+
+    // Fonction pour fermer la modale
+window.closeQuickModal = function() {
+    document.getElementById('quick-resource-modal').classList.add('hidden');
+};
+
+// Gestion de l'envoi du formulaire de la modale
+const quickForm = document.getElementById('quick-supabase-form');
+if (quickForm) {
+    quickForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('quick-submit-btn');
+        const formData = new FormData(e.target);
+        
+        // On réutilise tes noms de colonnes Supabase (title, type, learning, source_url)
+        const payload = {
+            title: formData.get('titre'),
+            type: formData.get('nature'),
+            learning: formData.get('apprentissage'),
+            source_url: window.location.href, // Ou l'URL du fichier ebook si tu préfères
+            created_at: new Date().toISOString()
+        };
+
+        try {
+            btn.disabled = true;
+            btn.innerHTML = "Envoi... ⏳";
+
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/ressources`, {
+                method: 'POST',
+                headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error("Erreur lors de l'enregistrement");
+
+            alert("Ressource enregistrée ! La question sera générée.");
+            closeQuickModal();
+        } catch (err) {
+            alert("Erreur : " + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = "Enregistrer la ressource";
+        }
+    });
+}
 });
 
 // Filet de sécurité retiré car géré par Reader.js avec Overlay
