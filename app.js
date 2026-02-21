@@ -183,8 +183,6 @@ window.closeReader = function() {
         epubCont.innerHTML = "";
         epubCont.classList.add('hidden');
     }
-    const bottomBar = document.getElementById('reader-bottom-bar');
-    if (bottomBar) bottomBar.classList.add('hidden');
     const shell = document.getElementById('reader-shell');
     if (shell) shell.style.background = '';
     window.removeEventListener("keydown", handleKeyNav);
