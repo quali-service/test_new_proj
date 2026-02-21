@@ -11,9 +11,20 @@ const Reader = {
         console.log("1. Démarrage du moteur Epub.js...");
         
         this.book = ePub(data);
+
+        // Measure the actual pixel dimensions so epub.js can't miscalculate spread
+        const containerEl = document.getElementById(containerId);
+        const shellEl = document.getElementById('reader-shell');
+        const w = (containerEl && containerEl.offsetWidth)
+                || (shellEl && shellEl.offsetWidth)
+                || Math.min(window.innerWidth, 672);
+        const h = (containerEl && containerEl.offsetHeight)
+                || (shellEl && shellEl.offsetHeight)
+                || window.innerHeight;
+
         this.rendition = this.book.renderTo(containerId, {
-            width: "100%",
-            height: "100%",
+            width: w,
+            height: h,
             flow: "paginated",
             manager: "default",
             spread: "none",
