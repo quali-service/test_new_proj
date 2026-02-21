@@ -62,27 +62,35 @@ async function loadEbooks() {
         const ebooks = await response.json();
 
         if (!ebooks || ebooks.length === 0) {
-            grid.innerHTML = "<p class='col-span-full text-center text-slate-400 p-12'>Aucun livre disponible.</p>";
+            grid.innerHTML = "<p class='text-center text-slate-400 p-12'>Aucun livre disponible.</p>";
             return;
         }
 
-        grid.innerHTML = ebooks.map(book => `
-            <div class="group bg-white p-5 rounded-[2rem] border-2 border-slate-100 hover:border-indigo-100 hover:shadow-xl transition-all duration-300 cursor-pointer" 
-                 onclick="openReader('${book.file_url}', '${book.title.replace(/'/g, "\\'")}')">
-                <div class="relative aspect-[3/4] overflow-hidden rounded-2xl mb-5 shadow-sm">
-                    <img src="${book.cover_url || 'https://images.unsplash.com/photo-1543005139-059e41cc7261'}" class="w-full h-full object-cover group-hover:scale-105 transition-all">
-                    <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                         <span class="bg-white text-indigo-600 px-4 py-2 rounded-xl font-bold shadow-lg">Lire</span>
+        const isEpub = url => url && url.toLowerCase().endsWith('.epub');
+
+        grid.className = 'flex flex-col gap-3';
+        grid.innerHTML = ebooks.map(book => {
+            const epub = isEpub(book.file_url);
+            const safeTitle = book.title.replace(/'/g, "\\'");
+            return `
+            <div class="group flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer"
+                 onclick="openReader('${book.file_url}', '${safeTitle}')">
+                <div class="w-11 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${epub ? 'bg-indigo-50' : 'bg-rose-50'}">
+                    <span class="text-2xl">${epub ? '📖' : '📄'}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-0.5">
+                        ${book.category ? `<span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">${book.category}</span><span class="text-slate-200 text-xs">·</span>` : ''}
+                        <span class="text-[10px] font-bold uppercase tracking-wider ${epub ? 'text-emerald-500' : 'text-rose-400'}">${epub ? 'EPUB' : 'PDF'}</span>
                     </div>
+                    <h3 class="font-bold text-slate-800 truncate">${book.title}</h3>
+                    <p class="text-sm text-slate-400 truncate">${book.author || ''}</p>
                 </div>
-                <div class="px-2">
-                    <span class="text-[10px] font-bold text-indigo-500 uppercase">${book.category || 'Général'}</span>
-                    <h3 class="font-bold text-slate-800 line-clamp-1">${book.title}</h3>
-                </div>
-            </div>
-        `).join('');
+                <span class="text-slate-300 group-hover:text-indigo-400 transition-colors text-lg flex-shrink-0">›</span>
+            </div>`;
+        }).join('');
     } catch (err) {
-        grid.innerHTML = "<p class='text-rose-500 text-center col-span-full'>Erreur bibliothèque</p>";
+        grid.innerHTML = "<p class='text-rose-500 text-center'>Erreur bibliothèque</p>";
     }
 }
 window.loadEbooks = loadEbooks;
