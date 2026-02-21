@@ -326,6 +326,9 @@
         </button>
         <h3 id="reader-title" class="font-black text-slate-800 truncate px-4 flex-1 text-center"></h3>
         <div id="epub-nav" class="hidden flex gap-2">
+            <button id="highlight-mode-btn" onclick="toggleHighlightMode()"
+                title="Activer le mode surlignage"
+                class="p-2 bg-amber-100 text-amber-600 rounded-lg text-sm font-bold transition-all">✏️</button>
             <button onclick="rendition.prev()" class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">◀</button>
             <button onclick="rendition.next()" class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">▶</button>
         </div>
@@ -345,35 +348,72 @@
 </div>
 </section>
 
-        <div id="quick-resource-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-    <div class="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-slide-up">
-        <div class="p-6 border-b border-slate-100 flex justify-between items-center">
-            <h3 class="font-bold text-slate-800">Transformer en ressource</h3>
-            <button onclick="closeQuickModal()" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
-        </div>
-        <form id="quick-supabase-form" class="p-6 space-y-4">
-            <input type="hidden" name="nature" value="Livre"> <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Titre de la ressource</label>
-                <input type="text" name="titre" id="quick-title" required class="w-full px-4 py-3 rounded-xl border border-slate-100 bg-slate-50 focus:bg-white outline-none">
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Extrait sélectionné</label>
-                <textarea name="apprentissage" id="quick-learning" rows="5" required class="w-full px-4 py-3 rounded-xl border border-slate-100 bg-slate-50 focus:bg-white outline-none"></textarea>
-            </div>
-
-            <button type="submit" id="quick-submit-btn" class="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200">
-                Enregistrer la ressource
-            </button>
-        </form>
-    </div>
-</div>
-
     </main>
 
 
     <script src="reader.js"></script>
     <script src="app.js"></script>
+
+    <!-- Modal surlignage -->
+    <div id="highlight-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4"
+         onclick="if(event.target===this)closeHighlightModal()">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 space-y-5">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold text-slate-800">Enregistrer ce passage</h3>
+                <button onclick="closeHighlightModal()" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">&times;</button>
+            </div>
+
+            <form id="highlight-form" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Titre de l'œuvre</label>
+                    <input type="text" id="highlight-titre" name="titre" required
+                        class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-3">Nature de l'œuvre</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="nature" value="Livre" class="peer hidden" required>
+                            <div class="text-center p-2 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Livre</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="nature" value="Revue" class="peer hidden">
+                            <div class="text-center p-2 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Revue</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="nature" value="Film" class="peer hidden">
+                            <div class="text-center p-2 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Film</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="nature" value="Série" class="peer hidden">
+                            <div class="text-center p-2 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Série</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="nature" value="Conférence" class="peer hidden">
+                            <div class="text-center p-2 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Conférence</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="nature" value="Étude" class="peer hidden">
+                            <div class="text-center p-2 rounded-xl border-2 border-slate-100 text-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-100 transition-all text-sm font-medium">Étude</div>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Passage sélectionné</label>
+                    <textarea id="highlight-text" name="apprentissage" rows="4" required
+                        class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all placeholder:text-slate-400"
+                        placeholder="Texte sélectionné..."></textarea>
+                </div>
+
+                <button type="submit" id="highlight-submit-btn"
+                    class="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-indigo-600 transform active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-2">
+                    <span>Enregistrer le passage</span>
+                </button>
+            </form>
+        </div>
+    </div>
 
 </body>
 
