@@ -34,11 +34,13 @@ const Reader = {
         });
 
         this.rendition.hooks.content.register((contents) => {
+            console.log("🪝 hooks.content.register déclenché", contents);
             this.injectMobileSelectionHandler(contents);
         });
 
         // Receive selected text posted from inside the iframe
         window.addEventListener('message', (e) => {
+            console.log("📨 message reçu:", e.data);
             if (e.data && e.data.type === 'epub-selection') {
                 const modalAlreadyOpen = !document.getElementById('highlight-modal')?.classList.contains('hidden');
                 if (modalAlreadyOpen) return;
@@ -144,29 +146,34 @@ setupNavigation: function(containerId) {
     },
 
     injectMobileSelectionHandler: function(contents) {
+        console.log("📲 injectMobileSelectionHandler appelé");
         const doc = contents && contents.document;
-        if (!doc) return;
+        if (!doc) { console.warn("❌ doc est null"); return; }
+        console.log("✅ doc disponible, injection du script...");
 
-        // Inject a script inside the iframe that posts the selection to the parent.
-        // This is required on iOS Safari where selectionchange doesn't cross iframe boundaries.
         const script = doc.createElement('script');
         script.textContent = `(function() {
+            console.log("🔧 Script iframe chargé");
             function sendSelection() {
                 var text = (window.getSelection() || '').toString().trim();
+                console.log("📤 sendSelection appelé, texte:", text);
                 if (text.length > 5) {
                     window.parent.postMessage({ type: 'epub-selection', text: text }, '*');
                 }
             }
             var timer = null;
             document.addEventListener('selectionchange', function() {
+                console.log("✏️ selectionchange dans iframe");
                 clearTimeout(timer);
                 timer = setTimeout(sendSelection, 600);
             });
             document.addEventListener('touchend', function() {
+                console.log("👆 touchend dans iframe");
                 setTimeout(sendSelection, 400);
             });
         })();`;
         doc.head.appendChild(script);
+        console.log("✅ Script injecté dans l'iframe");
     },
 
     injectKindleStyles: function() {
