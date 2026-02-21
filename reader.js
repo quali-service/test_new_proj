@@ -1,4 +1,4 @@
-// reader.js - Version "iPhone 17 Pro Max" corrigée
+// reader.js - Version Hybride Navigation + Sélection
 const Reader = {
     book: null,
     rendition: null,
@@ -6,7 +6,6 @@ const Reader = {
 
     init: function(data, containerId) {
         console.group("🛠️ Diagnostic Initialisation");
-        console.log("1. Démarrage du moteur Epub.js...");
         
         this.book = ePub(data);
         this.rendition = this.book.renderTo(containerId, {
@@ -17,94 +16,68 @@ const Reader = {
             spread: "none"
         });
 
-        // Surveillance du chargement global
         this.book.ready.then(() => {
             console.log("2. ✅ Structure du livre chargée");
             return this.book.locations.generate(1000);
         }).then(() => {
             this.isReady = true;
-            console.log("3. ✅ Pagination calculée.");
             console.groupEnd();
         });
 
-        // Événements de rendu
+        // --- GESTION DE LA SÉLECTION ---
+        this.rendition.on("selected", (cfiRange, contents) => {
+            const text = contents.window.getSelection().toString();
+            if (text && text.trim().length > 5) {
+                // Remplissage de la modale définie dans index.html
+                const quickLearning = document.getElementById('quick-learning');
+                const quickTitle = document.getElementById('quick-title');
+                const readerTitle = document.getElementById('reader-title');
+
+                if (quickLearning) quickLearning.value = text.trim();
+                if (quickTitle) {
+                    quickTitle.value = "Note sur : " + (readerTitle ? readerTitle.textContent : "Livre");
+                }
+                
+                // Affichage de la modale
+                const modal = document.getElementById('quick-resource-modal');
+                if (modal) modal.classList.remove('hidden');
+                
+                // Nettoyage pour éviter que la surbrillance reste bloquée
+                contents.window.getSelection().removeAllRanges();
+            }
+        });
+
         this.rendition.on("rendered", (section) => {
-            console.log(`🖼️ Chapitre chargé : ${section.href}`);
             this.injectKindleStyles();
+            // On attache la navigation directement au contenu de l'iframe
+            this.setupInternalNavigation();
         });
 
         this.rendition.on("relocated", (location) => {
             this.updateProgress(location);
         });
 
-        // 🛡️ RÉ-INSERTION DE LA FONCTION MANQUANTE
-        this.setupNavigation(containerId);
-
-        // Affichage et ajustement final au format iPhone
-        return this.rendition.display().then(() => {
-    // On augmente légèrement le délai pour attendre la fin de l'animation CSS
-    setTimeout(() => {
-        if (this.rendition) {
-            // 1. On force le calcul de la taille réelle du parent
-            this.rendition.resize();
-            
-            // 2. On s'assure que l'overlay couvre bien la nouvelle taille
-            const overlay = document.getElementById('reader-overlay');
-            if (overlay) {
-                overlay.classList.remove('hidden');
-                overlay.style.display = 'block';
-            }
-            
-            console.log("📏 Ajustement final effectué après animation");
-        }
-    }, 300); // 300ms est le "sweet spot" pour les animations mobiles
-});
+        return this.rendition.display();
     },
 
-setupNavigation: function(containerId) {
-    const container = document.getElementById(containerId);
-    const overlay = document.getElementById('reader-overlay');
-    
-    // On rend l'overlay visible et on le plaque sur le viewer
-    if (overlay) {
-        overlay.style.display = 'block';
-        // On s'assure qu'il a la même taille que le viewer
-        const rect = container.getBoundingClientRect();
-        overlay.style.top = rect.top + 'px';
-        overlay.style.left = rect.left + 'px';
-        overlay.style.width = rect.width + 'px';
-        overlay.style.height = rect.height + 'px';
-    }
+    setupInternalNavigation: function() {
+        // Accès au document à l'intérieur de l'iframe
+        this.rendition.on("click", (e) => {
+            // Sécurité : si du texte est sélectionné, on ne tourne pas la page
+            const selection = this.rendition.getContents()[0].window.getSelection();
+            if (selection.toString().length > 0) return;
 
-    const handleNav = (clientX) => {
-        const width = container.offsetWidth;
-        const rect = container.getBoundingClientRect();
-        const xRelatif = clientX - rect.left;
+            const width = window.innerWidth;
+            const x = e.clientX;
 
-        console.log(`[OVERLAY] Click à ${Math.round(xRelatif)}px sur ${width}px`);
-
-        if (xRelatif < width * 0.3) {
-            console.log("⬅️ Retour");
-            this.prev();
-        } else {
-            console.log("➡️ Suivant");
-            this.next();
-        }
-    };
-
-    // On écoute sur la VITRE, pas sur l'iframe
-    overlay.addEventListener('click', (e) => {
-        console.log("🖱️ Overlay Click");
-        handleNav(e.clientX);
-    });
-
-    overlay.addEventListener('touchend', (e) => {
-        console.log("📱 Overlay Touch");
-        const touch = e.changedTouches[0];
-        handleNav(touch.clientX);
-        e.preventDefault(); 
-    }, { passive: false });
-},
+            // Navigation par zones (30% gauche = retour, reste = suivant)
+            if (x < width * 0.3) {
+                this.prev();
+            } else {
+                this.next();
+            }
+        });
+    },
 
     updateProgress: function(location) {
         const loc = location || this.rendition.currentLocation();
@@ -129,8 +102,7 @@ setupNavigation: function(containerId) {
                 "line-height": "1.6 !important",
                 "color": "#1a1a1a !important",
                 "background": "#ffffff !important"
-            },
-            "p": { "margin-bottom": "1.2em !important" }
+            }
         });
     },
 
@@ -142,8 +114,5 @@ setupNavigation: function(containerId) {
         if (this.rendition) this.rendition.prev();
     }
 };
-
-window.nextPage = () => Reader.next();
-window.prevPage = () => Reader.prev();
 
 window.Reader = Reader;
