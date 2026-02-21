@@ -38,10 +38,14 @@ const Reader = {
             this.injectMobileSelectionHandler(contents);
         });
 
-        // Receive selected text posted from inside the iframe
+        // Receive messages posted from inside the iframe
         window.addEventListener('message', (e) => {
-            window._dbg && _dbg("📨 msg: " + JSON.stringify(e.data));
-            if (e.data && e.data.type === 'epub-selection') {
+            if (!e.data) return;
+            if (e.data.type === 'epub-debug') {
+                window._dbg && _dbg("IFRAME: " + e.data.msg);
+            }
+            if (e.data.type === 'epub-selection') {
+                window._dbg && _dbg("📨 selection: " + (e.data.text || '').slice(0, 30));
                 const modalAlreadyOpen = !document.getElementById('highlight-modal')?.classList.contains('hidden');
                 if (modalAlreadyOpen) return;
                 const title = document.getElementById('reader-title')?.textContent || '';
@@ -153,22 +157,25 @@ setupNavigation: function(containerId) {
 
         const script = doc.createElement('script');
         script.textContent = `(function() {
-            window.parent._dbg && window.parent._dbg("🔧 iframe script loaded");
+            function dbg(msg) {
+                window.parent.postMessage({ type: 'epub-debug', msg: msg }, '*');
+            }
+            dbg("🔧 iframe script loaded");
             function sendSelection() {
                 var text = (window.getSelection() || '').toString().trim();
-                window.parent._dbg && window.parent._dbg("📤 text: " + text.slice(0,30));
+                dbg("📤 text: " + text.slice(0,30));
                 if (text.length > 5) {
                     window.parent.postMessage({ type: 'epub-selection', text: text }, '*');
                 }
             }
             var timer = null;
             document.addEventListener('selectionchange', function() {
-                window.parent._dbg && window.parent._dbg("✏️ selectionchange");
+                dbg("✏️ selectionchange");
                 clearTimeout(timer);
                 timer = setTimeout(sendSelection, 600);
             });
             document.addEventListener('touchend', function() {
-                window.parent._dbg && window.parent._dbg("👆 touchend");
+                dbg("👆 touchend");
                 setTimeout(sendSelection, 400);
             });
         })();`;
