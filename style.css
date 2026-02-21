@@ -54,25 +54,12 @@
 }
 
 #epub-viewer {
-    /* Dimensions : On utilise 'aspect-ratio' pour garder la forme smartphone */
     width: 100%;
-    max-width: 440px; 
-    aspect-ratio: 9 / 19.5; /* Ratio réel de l'iPhone 17 Pro Max */
-    
-    /* Centrage */
-    margin: 20px auto; 
-    
-    /* Look Smartphone */
-    background-color: white !important;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    
-    /* Crucial pour l'Overlay et Epub.js */
+    height: 100%;
+    background-color: white;
     position: relative;
-    overflow: hidden; /* Garde le texte à l'intérieur des coins arrondis */
+    overflow: hidden;
     display: block !important;
-    
-    /* Sécurité pour les petits écrans */
-    max-height: 80vh; 
 }
 
 /* On s'assure que l'iframe remplit bien ce faux téléphone */

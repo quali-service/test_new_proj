@@ -103,6 +103,8 @@ window.openReader = function(url, title) {
     if (url.toLowerCase().endsWith('.epub')) {
         viewer.classList.add('hidden');
         if (epubNav) epubNav.classList.remove('hidden');
+        const bottomBar = document.getElementById('reader-bottom-bar');
+        if (bottomBar) bottomBar.classList.remove('hidden');
         if (epubCont) {
             epubCont.classList.remove('hidden');
             epubCont.innerHTML = "<div class='flex flex-col items-center justify-center h-full'><div class='animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4'></div><p class='text-slate-500'>Chargement sécurisé...</p></div>";
@@ -146,6 +148,10 @@ window.closeReader = function() {
         epubCont.innerHTML = "";
         epubCont.classList.add('hidden');
     }
+    const bottomBar = document.getElementById('reader-bottom-bar');
+    if (bottomBar) bottomBar.classList.add('hidden');
+    const shell = document.getElementById('reader-shell');
+    if (shell) shell.style.background = '';
     window.removeEventListener("keydown", handleKeyNav);
 
     // Reset highlight mode
@@ -173,6 +179,32 @@ window.toggleHighlightMode = function() {
         }
     }
     if (saveBtn) saveBtn.classList.toggle('hidden', !highlightModeActive);
+};
+
+const readerThemes = ['light', 'sepia', 'dark'];
+const themeEmojis = { light: '☀️', sepia: '📜', dark: '🌙' };
+let currentThemeIdx = 0;
+
+window.increaseFontSize = function() {
+    if (!window.Reader || window.Reader.fontSize >= 24) return;
+    window.Reader.fontSize++;
+    window.Reader.applyTheme();
+};
+
+window.decreaseFontSize = function() {
+    if (!window.Reader || window.Reader.fontSize <= 13) return;
+    window.Reader.fontSize--;
+    window.Reader.applyTheme();
+};
+
+window.cycleReaderTheme = function() {
+    if (!window.Reader) return;
+    currentThemeIdx = (currentThemeIdx + 1) % readerThemes.length;
+    const theme = readerThemes[currentThemeIdx];
+    window.Reader.currentTheme = theme;
+    window.Reader.applyTheme();
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.textContent = themeEmojis[theme];
 };
 
 window.saveSelection = function() {

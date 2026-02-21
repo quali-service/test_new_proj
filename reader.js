@@ -3,6 +3,8 @@ const Reader = {
     book: null,
     rendition: null,
     isReady: false,
+    fontSize: 18,
+    currentTheme: 'light',
 
     init: function(data, containerId) {
         console.group("🛠️ Diagnostic Initialisation");
@@ -27,10 +29,9 @@ const Reader = {
             console.groupEnd();
         });
 
-        // Événements de rendu
         this.rendition.on("rendered", (section) => {
             console.log(`🖼️ Chapitre chargé : ${section.href}`);
-            this.injectKindleStyles();
+            this.applyTheme();
         });
 
         // Desktop: epub.js selected event handles text selection automatically
@@ -131,30 +132,46 @@ setupNavigation: function(containerId) {
         if (loc && loc.start && this.isReady) {
             const percent = this.book.locations.percentageFromCfi(loc.start.cfi);
             const percentage = Math.floor(percent * 100);
-            
-            const label = document.getElementById("page-percent");
-            if (label) label.textContent = `${percentage}%`;
 
-            const bar = document.getElementById("progress-bar");
-            if (bar) bar.style.width = `${percentage}%`;
+            const progressText = document.getElementById("reader-progress-text");
+            if (progressText) progressText.textContent = `${percentage}%`;
         }
     },
 
-    injectKindleStyles: function() {
+    applyTheme: function() {
+        const themes = {
+            light: { bg: '#ffffff', color: '#1a1a1a' },
+            sepia: { bg: '#f8f1e3', color: '#4a3728' },
+            dark:  { bg: '#1c1c1e', color: '#d0d0d0' }
+        };
+        const t = themes[this.currentTheme] || themes.light;
+
         this.rendition.themes.default({
             "body": {
-                "font-family": "'Bitter', serif !important",
-                "font-size": "17px !important",
-                "padding": "20px 15px !important",
-                "line-height": "1.6 !important",
-                "color": "#1a1a1a !important",
-                "background": "#ffffff !important",
+                "font-family": "'Lora', 'Georgia', 'Palatino Linotype', serif !important",
+                "font-size": this.fontSize + "px !important",
+                "padding": "28px 24px !important",
+                "line-height": "1.85 !important",
+                "color": t.color + " !important",
+                "background": t.bg + " !important",
                 "-webkit-user-select": "text !important",
                 "user-select": "text !important",
                 "-webkit-touch-callout": "default !important"
             },
-            "p": { "margin-bottom": "1.2em !important" }
+            "p": { "margin-bottom": "1.3em !important", "text-align": "justify !important" },
+            "h1, h2, h3": { "line-height": "1.4 !important", "margin-bottom": "0.8em !important" }
         });
+
+        const shell = document.getElementById('reader-shell');
+        if (shell) shell.style.background = t.bg;
+
+        const bar = document.getElementById('reader-bottom-bar');
+        if (bar) {
+            bar.style.background = this.currentTheme === 'dark' ? '#2d2d2f' : '';
+            bar.style.borderColor = this.currentTheme === 'dark' ? '#444' : '';
+            const progressText = document.getElementById('reader-progress-text');
+            if (progressText) progressText.style.color = this.currentTheme === 'dark' ? '#666' : '';
+        }
     },
 
     next: function() {

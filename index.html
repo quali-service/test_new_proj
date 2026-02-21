@@ -17,6 +17,8 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 
 </head>
@@ -320,34 +322,42 @@
     <div id="ebook-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"></div>
 
     <div id="reader-container" class="hidden animate-reveal">
-    <div class="flex items-center justify-between mb-6">
-        <button onclick="closeReader()" class="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all shadow-sm">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-4 max-w-2xl mx-auto">
+        <button onclick="closeReader()" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition-all shadow-sm text-sm">
             <span>←</span> Retour
         </button>
-        <h3 id="reader-title" class="font-black text-slate-800 truncate px-4 flex-1 text-center"></h3>
-        <div id="epub-nav" class="hidden flex gap-2">
+        <h3 id="reader-title" class="font-bold text-slate-600 truncate px-4 flex-1 text-center text-sm"></h3>
+        <div id="epub-nav" class="hidden flex gap-1.5">
             <button id="highlight-mode-btn" onclick="toggleHighlightMode()"
                 title="Activer le mode surlignage"
                 class="p-2 bg-amber-100 text-amber-600 rounded-lg text-sm font-bold transition-all">✏️</button>
             <button id="save-selection-btn" onclick="saveSelection()"
                 title="Enregistrer la sélection"
                 class="hidden p-2 bg-emerald-100 text-emerald-600 rounded-lg text-sm font-bold transition-all">💾</button>
-            <button onclick="rendition.prev()" class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">◀</button>
-            <button onclick="rendition.next()" class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">▶</button>
+            <button onclick="rendition.prev()" class="p-2 bg-slate-100 text-slate-500 rounded-lg text-sm">◀</button>
+            <button onclick="rendition.next()" class="p-2 bg-slate-100 text-slate-500 rounded-lg text-sm">▶</button>
         </div>
     </div>
 
-    <div class="bg-slate-200 p-1.5 rounded-[2.5rem] shadow-inner relative">
-    <div class="bg-white rounded-[2rem] overflow-hidden shadow-2xl border border-slate-300 h-[75vh] relative">
-        
+    <!-- Reading area -->
+    <div id="reader-shell" class="max-w-2xl mx-auto rounded-2xl shadow-xl overflow-hidden border border-slate-200 h-[75vh] relative bg-white">
         <iframe id="pdf-viewer" class="w-full h-full hidden" frameborder="0"></iframe>
-        
         <div id="epub-viewer" class="w-full h-full hidden"></div>
-        
         <div id="reader-overlay" class="absolute inset-0 z-[100] cursor-pointer hidden"></div>
-        
     </div>
-</div>
+
+    <!-- Bottom controls bar (epub only) -->
+    <div id="reader-bottom-bar" class="hidden max-w-2xl mx-auto mt-3 flex items-center justify-between px-5 py-3 bg-white rounded-xl shadow-sm border border-slate-100">
+        <div class="flex items-center gap-2">
+            <button onclick="decreaseFontSize()" class="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-200 transition-all">A−</button>
+            <button onclick="increaseFontSize()" class="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-200 transition-all">A+</button>
+        </div>
+        <span id="reader-progress-text" class="text-xs font-semibold text-slate-400 tracking-widest">0%</span>
+        <button onclick="cycleReaderTheme()" id="theme-btn" class="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-slate-200 transition-all">☀️</button>
+    </div>
+
 </div>
 </section>
 
