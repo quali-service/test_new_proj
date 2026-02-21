@@ -13,6 +13,7 @@ const HEADERS = {
 
 window.rendition = null;
 let highlightModeActive = false;
+let allEbooks = [];
 
 // --- 2. NAVIGATION & UI ---
 
@@ -52,6 +53,76 @@ window.toggleAddEbookForm = function() {
 
 // --- 3. LOGIQUE EBOOK & LECTEUR ---
 
+const isEpub = url => url && url.toLowerCase().endsWith('.epub');
+
+function renderEbookList(ebooks) {
+    const grid = document.getElementById('ebook-grid');
+    if (!grid) return;
+    if (!ebooks || ebooks.length === 0) {
+        grid.className = '';
+        grid.innerHTML = "<p class='text-center text-slate-400 p-12'>Aucun résultat.</p>";
+        return;
+    }
+    grid.className = 'flex flex-col gap-3';
+    grid.innerHTML = ebooks.map(book => {
+        const epub = isEpub(book.file_url);
+        const safeTitle = book.title.replace(/'/g, "\\'");
+        return `
+        <div class="group flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer"
+             onclick="openReader('${book.file_url}', '${safeTitle}')">
+            <div class="w-11 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${epub ? 'bg-indigo-50' : 'bg-rose-50'}">
+                <span class="text-2xl">${epub ? '📖' : '📄'}</span>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-0.5">
+                    ${book.category ? `<span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">${book.category}</span><span class="text-slate-200 text-xs">·</span>` : ''}
+                    <span class="text-[10px] font-bold uppercase tracking-wider ${epub ? 'text-emerald-500' : 'text-rose-400'}">${epub ? 'EPUB' : 'PDF'}</span>
+                </div>
+                <h3 class="font-bold text-slate-800 truncate">${book.title}</h3>
+                <p class="text-sm text-slate-400 truncate">${book.author || ''}</p>
+            </div>
+            <span class="text-slate-300 group-hover:text-indigo-400 transition-colors text-lg flex-shrink-0">›</span>
+        </div>`;
+    }).join('');
+}
+
+// Returns a score > 0 if all chars of query appear in order inside text, 0 otherwise.
+// Consecutive matches score higher than scattered ones.
+function fuzzyScore(query, text) {
+    if (!query || !text) return 0;
+    query = query.toLowerCase();
+    text = text.toLowerCase();
+    let qi = 0, score = 0, lastIdx = -1;
+    for (let i = 0; i < text.length && qi < query.length; i++) {
+        if (text[i] === query[qi]) {
+            score += (lastIdx === i - 1) ? 2 : 1;
+            lastIdx = i;
+            qi++;
+        }
+    }
+    return qi === query.length ? score : 0;
+}
+
+window.filterBooks = function(query) {
+    if (!query || !query.trim()) {
+        renderEbookList(allEbooks);
+        return;
+    }
+    const q = query.trim();
+    const scored = allEbooks
+        .map(book => ({
+            book,
+            score: Math.max(
+                fuzzyScore(q, book.title || ''),
+                fuzzyScore(q, book.author || ''),
+                fuzzyScore(q, book.category || '')
+            )
+        }))
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score);
+    renderEbookList(scored.map(x => x.book));
+};
+
 async function loadEbooks() {
     const grid = document.getElementById('ebook-grid');
     if (!grid) return;
@@ -60,35 +131,8 @@ async function loadEbooks() {
     try {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/ebooks?select=*`, { headers: HEADERS });
         const ebooks = await response.json();
-
-        if (!ebooks || ebooks.length === 0) {
-            grid.innerHTML = "<p class='text-center text-slate-400 p-12'>Aucun livre disponible.</p>";
-            return;
-        }
-
-        const isEpub = url => url && url.toLowerCase().endsWith('.epub');
-
-        grid.className = 'flex flex-col gap-3';
-        grid.innerHTML = ebooks.map(book => {
-            const epub = isEpub(book.file_url);
-            const safeTitle = book.title.replace(/'/g, "\\'");
-            return `
-            <div class="group flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer"
-                 onclick="openReader('${book.file_url}', '${safeTitle}')">
-                <div class="w-11 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${epub ? 'bg-indigo-50' : 'bg-rose-50'}">
-                    <span class="text-2xl">${epub ? '📖' : '📄'}</span>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-0.5">
-                        ${book.category ? `<span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">${book.category}</span><span class="text-slate-200 text-xs">·</span>` : ''}
-                        <span class="text-[10px] font-bold uppercase tracking-wider ${epub ? 'text-emerald-500' : 'text-rose-400'}">${epub ? 'EPUB' : 'PDF'}</span>
-                    </div>
-                    <h3 class="font-bold text-slate-800 truncate">${book.title}</h3>
-                    <p class="text-sm text-slate-400 truncate">${book.author || ''}</p>
-                </div>
-                <span class="text-slate-300 group-hover:text-indigo-400 transition-colors text-lg flex-shrink-0">›</span>
-            </div>`;
-        }).join('');
+        allEbooks = ebooks || [];
+        renderEbookList(allEbooks);
     } catch (err) {
         grid.innerHTML = "<p class='text-rose-500 text-center'>Erreur bibliothèque</p>";
     }
@@ -120,6 +164,8 @@ window.openReader = function(url, title) {
     if (libraryHeader) libraryHeader.style.display = 'none';
     const addForm = document.getElementById('add-ebook-container');
     if (addForm) addForm.style.display = 'none';
+    const searchWrap = document.getElementById('library-search-wrap');
+    if (searchWrap) searchWrap.style.display = 'none';
     const readerShell = document.getElementById('reader-shell');
     if (readerShell) readerShell.style.height = 'calc(100dvh - 90px)';
 
@@ -194,6 +240,10 @@ window.closeReader = function() {
     if (libraryHeader) libraryHeader.style.display = '';
     const addForm = document.getElementById('add-ebook-container');
     if (addForm) addForm.style.display = '';
+    const searchWrap = document.getElementById('library-search-wrap');
+    if (searchWrap) searchWrap.style.display = '';
+    const searchInput = document.getElementById('book-search');
+    if (searchInput) { searchInput.value = ''; renderEbookList(allEbooks); }
     const readerShell = document.getElementById('reader-shell');
     if (readerShell) readerShell.style.height = '';
     document.getElementById('pdf-viewer').src = "";
