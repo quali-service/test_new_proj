@@ -157,9 +157,7 @@ setupNavigation: function(containerId) {
                 "background": t.bg + " !important",
                 "-webkit-user-select": "text !important",
                 "user-select": "text !important",
-                "-webkit-touch-callout": "default !important",
-                "column-count": "1 !important",
-                "column-gap": "0 !important"
+                "-webkit-touch-callout": "default !important"
             },
             "p": { "margin-bottom": "1.3em !important", "text-align": "justify !important" },
             "h1, h2, h3": { "line-height": "1.4 !important", "margin-bottom": "0.8em !important" }
