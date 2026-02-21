@@ -108,11 +108,20 @@ window.openReader = function(url, title) {
     container.classList.remove('hidden');
     readerTitle.textContent = title;
 
-    // Reading mode: remove section padding, top-align main
+    // Reading mode: remove section padding, top-align main, hide nav + library header
     document.getElementById('ebook-section').classList.add('reading-mode');
     const mainEl = document.querySelector('main');
     mainEl.classList.remove('items-center', 'justify-center');
     mainEl.classList.add('items-start');
+    mainEl.classList.remove('lg:ml-64', 'pb-24', 'lg:pb-8');
+    const nav = document.querySelector('nav');
+    if (nav) nav.style.display = 'none';
+    const libraryHeader = document.getElementById('library-header');
+    if (libraryHeader) libraryHeader.style.display = 'none';
+    const addForm = document.getElementById('add-ebook-container');
+    if (addForm) addForm.style.display = 'none';
+    const readerShell = document.getElementById('reader-shell');
+    if (readerShell) readerShell.style.height = 'calc(100dvh - 90px)';
 
     if (url.toLowerCase().endsWith('.epub')) {
         viewer.classList.add('hidden');
@@ -178,7 +187,15 @@ window.closeReader = function() {
     document.getElementById('ebook-section').classList.remove('reading-mode');
     const mainEl = document.querySelector('main');
     mainEl.classList.remove('items-start');
-    mainEl.classList.add('items-center', 'justify-center');
+    mainEl.classList.add('items-center', 'justify-center', 'lg:ml-64', 'pb-24', 'lg:pb-8');
+    const nav = document.querySelector('nav');
+    if (nav) nav.style.display = '';
+    const libraryHeader = document.getElementById('library-header');
+    if (libraryHeader) libraryHeader.style.display = '';
+    const addForm = document.getElementById('add-ebook-container');
+    if (addForm) addForm.style.display = '';
+    const readerShell = document.getElementById('reader-shell');
+    if (readerShell) readerShell.style.height = '';
     document.getElementById('pdf-viewer').src = "";
     const epubCont = document.getElementById('epub-viewer');
     if (epubCont) {
