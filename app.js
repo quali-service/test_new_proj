@@ -86,12 +86,16 @@ function renderEbookList(ebooks) {
     }).join('');
 }
 
+function stripAccents(s) {
+    return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 // Returns a score > 0 if all chars of query appear in order inside text, 0 otherwise.
-// Consecutive matches score higher than scattered ones.
+// Consecutive matches score higher than scattered ones. Accent-insensitive.
 function fuzzyScore(query, text) {
     if (!query || !text) return 0;
-    query = query.toLowerCase();
-    text = text.toLowerCase();
+    query = stripAccents(query.toLowerCase());
+    text = stripAccents(text.toLowerCase());
     let qi = 0, score = 0, lastIdx = -1;
     for (let i = 0; i < text.length && qi < query.length; i++) {
         if (text[i] === query[qi]) {
