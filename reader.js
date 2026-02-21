@@ -34,13 +34,13 @@ const Reader = {
         });
 
         this.rendition.hooks.content.register((contents) => {
-            console.log("🪝 hooks.content.register déclenché", contents);
+            window._dbg && _dbg("🪝 hook fired");
             this.injectMobileSelectionHandler(contents);
         });
 
         // Receive selected text posted from inside the iframe
         window.addEventListener('message', (e) => {
-            console.log("📨 message reçu:", e.data);
+            window._dbg && _dbg("📨 msg: " + JSON.stringify(e.data));
             if (e.data && e.data.type === 'epub-selection') {
                 const modalAlreadyOpen = !document.getElementById('highlight-modal')?.classList.contains('hidden');
                 if (modalAlreadyOpen) return;
@@ -146,34 +146,34 @@ setupNavigation: function(containerId) {
     },
 
     injectMobileSelectionHandler: function(contents) {
-        console.log("📲 injectMobileSelectionHandler appelé");
+        window._dbg && _dbg("📲 inject called");
         const doc = contents && contents.document;
-        if (!doc) { console.warn("❌ doc est null"); return; }
-        console.log("✅ doc disponible, injection du script...");
+        if (!doc) { window._dbg && _dbg("❌ doc null"); return; }
+        window._dbg && _dbg("✅ doc ok, injecting...");
 
         const script = doc.createElement('script');
         script.textContent = `(function() {
-            console.log("🔧 Script iframe chargé");
+            window.parent._dbg && window.parent._dbg("🔧 iframe script loaded");
             function sendSelection() {
                 var text = (window.getSelection() || '').toString().trim();
-                console.log("📤 sendSelection appelé, texte:", text);
+                window.parent._dbg && window.parent._dbg("📤 text: " + text.slice(0,30));
                 if (text.length > 5) {
                     window.parent.postMessage({ type: 'epub-selection', text: text }, '*');
                 }
             }
             var timer = null;
             document.addEventListener('selectionchange', function() {
-                console.log("✏️ selectionchange dans iframe");
+                window.parent._dbg && window.parent._dbg("✏️ selectionchange");
                 clearTimeout(timer);
                 timer = setTimeout(sendSelection, 600);
             });
             document.addEventListener('touchend', function() {
-                console.log("👆 touchend dans iframe");
+                window.parent._dbg && window.parent._dbg("👆 touchend");
                 setTimeout(sendSelection, 400);
             });
         })();`;
         doc.head.appendChild(script);
-        console.log("✅ Script injecté dans l'iframe");
+        window._dbg && _dbg("✅ script injected");
     },
 
     injectKindleStyles: function() {
