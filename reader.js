@@ -37,6 +37,16 @@ const Reader = {
             this.injectMobileSelectionHandler(contents);
         });
 
+        // Receive selected text posted from inside the iframe
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'epub-selection') {
+                const modalAlreadyOpen = !document.getElementById('highlight-modal')?.classList.contains('hidden');
+                if (modalAlreadyOpen) return;
+                const title = document.getElementById('reader-title')?.textContent || '';
+                window.openHighlightModal(e.data.text, title);
+            }
+        });
+
         this.rendition.on("relocated", (location) => {
             this.updateProgress(location);
         });
@@ -134,28 +144,29 @@ setupNavigation: function(containerId) {
     },
 
     injectMobileSelectionHandler: function(contents) {
-        console.log("📲 injectMobileSelectionHandler appelé", contents);
         const doc = contents && contents.document;
-        if (!doc) { console.warn("❌ doc est null, abandon"); return; }
-        console.log("✅ doc disponible:", doc);
+        if (!doc) return;
 
-        let selectionTimer = null;
-        doc.addEventListener('selectionchange', () => {
-            console.log("✏️ selectionchange détecté");
-            clearTimeout(selectionTimer);
-            selectionTimer = setTimeout(() => {
-                const sel = doc.getSelection();
-                const text = sel ? sel.toString().trim() : '';
-                console.log("📝 Texte sélectionné:", JSON.stringify(text), "longueur:", text.length);
-                const modalAlreadyOpen = !document.getElementById('highlight-modal')?.classList.contains('hidden');
-                console.log("🪟 Modal déjà ouverte:", modalAlreadyOpen);
-                if (text.length > 5 && !modalAlreadyOpen) {
-                    const title = document.getElementById('reader-title')?.textContent || '';
-                    console.log("🚀 Ouverture modal pour:", title);
-                    window.openHighlightModal(text, title);
+        // Inject a script inside the iframe that posts the selection to the parent.
+        // This is required on iOS Safari where selectionchange doesn't cross iframe boundaries.
+        const script = doc.createElement('script');
+        script.textContent = `(function() {
+            function sendSelection() {
+                var text = (window.getSelection() || '').toString().trim();
+                if (text.length > 5) {
+                    window.parent.postMessage({ type: 'epub-selection', text: text }, '*');
                 }
-            }, 600);
-        });
+            }
+            var timer = null;
+            document.addEventListener('selectionchange', function() {
+                clearTimeout(timer);
+                timer = setTimeout(sendSelection, 600);
+            });
+            document.addEventListener('touchend', function() {
+                setTimeout(sendSelection, 400);
+            });
+        })();`;
+        doc.head.appendChild(script);
     },
 
     injectKindleStyles: function() {
