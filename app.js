@@ -100,6 +100,12 @@ window.openReader = function(url, title) {
     container.classList.remove('hidden');
     readerTitle.textContent = title;
 
+    // Reading mode: remove section padding, top-align main
+    document.getElementById('ebook-section').classList.add('reading-mode');
+    const mainEl = document.querySelector('main');
+    mainEl.classList.remove('items-center', 'justify-center');
+    mainEl.classList.add('items-start');
+
     if (url.toLowerCase().endsWith('.epub')) {
         viewer.classList.add('hidden');
         if (epubNav) epubNav.classList.remove('hidden');
@@ -142,6 +148,12 @@ window.openReader = function(url, title) {
 window.closeReader = function() {
     document.getElementById('ebook-grid').classList.remove('hidden');
     document.getElementById('reader-container').classList.add('hidden');
+
+    // Restore layout
+    document.getElementById('ebook-section').classList.remove('reading-mode');
+    const mainEl = document.querySelector('main');
+    mainEl.classList.remove('items-start');
+    mainEl.classList.add('items-center', 'justify-center');
     document.getElementById('pdf-viewer').src = "";
     const epubCont = document.getElementById('epub-viewer');
     if (epubCont) {
