@@ -106,21 +106,24 @@ function fuzzyScore(query, text) {
 window.filterBooks = function(query) {
     if (!query || !query.trim()) {
         renderEbookList(allEbooks);
-        return;
+    } else {
+        const q = query.trim();
+        const scored = allEbooks
+            .map(book => ({
+                book,
+                score: Math.max(
+                    fuzzyScore(q, book.title || ''),
+                    fuzzyScore(q, book.author || ''),
+                    fuzzyScore(q, book.category || '')
+                )
+            }))
+            .filter(x => x.score > 0)
+            .sort((a, b) => b.score - a.score);
+        renderEbookList(scored.map(x => x.book));
     }
-    const q = query.trim();
-    const scored = allEbooks
-        .map(book => ({
-            book,
-            score: Math.max(
-                fuzzyScore(q, book.title || ''),
-                fuzzyScore(q, book.author || ''),
-                fuzzyScore(q, book.category || '')
-            )
-        }))
-        .filter(x => x.score > 0)
-        .sort((a, b) => b.score - a.score);
-    renderEbookList(scored.map(x => x.book));
+    // Keep search bar at top so results are immediately visible below it
+    const wrap = document.getElementById('library-search-wrap');
+    if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
 async function loadEbooks() {

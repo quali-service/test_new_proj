@@ -323,7 +323,8 @@
         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none">🔍</span>
         <input id="book-search" type="search" placeholder="Rechercher un livre..."
             class="w-full pl-11 pr-4 py-3 bg-white rounded-2xl border border-slate-100 focus:border-indigo-300 focus:ring-4 focus:ring-indigo-50 outline-none transition-all text-slate-700 placeholder:text-slate-400 shadow-sm"
-            oninput="filterBooks(this.value)">
+            oninput="filterBooks(this.value)"
+            onfocus="setTimeout(()=>document.getElementById('library-search-wrap').scrollIntoView({behavior:'smooth',block:'start'}),250)">
     </div>
 
     <div id="ebook-grid"></div>
