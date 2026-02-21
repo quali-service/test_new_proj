@@ -162,6 +162,7 @@ window.toggleHighlightMode = function() {
     highlightModeActive = !highlightModeActive;
     if (window.Reader) window.Reader.setHighlightMode(highlightModeActive);
     const btn = document.getElementById('highlight-mode-btn');
+    const saveBtn = document.getElementById('save-selection-btn');
     if (btn) {
         if (highlightModeActive) {
             btn.classList.remove('bg-amber-100', 'text-amber-600');
@@ -171,6 +172,24 @@ window.toggleHighlightMode = function() {
             btn.classList.add('bg-amber-100', 'text-amber-600');
         }
     }
+    if (saveBtn) saveBtn.classList.toggle('hidden', !highlightModeActive);
+};
+
+window.saveSelection = function() {
+    if (!window.rendition) return;
+    const contents = window.rendition.getContents();
+    contents.forEach(c => {
+        if (c.window) {
+            try {
+                c.window.eval(`(function() {
+                    var text = (window.getSelection() || '').toString().trim();
+                    if (text.length > 5) {
+                        window.parent.postMessage({ type: 'epub-selection', text: text }, '*');
+                    }
+                })()`);
+            } catch(e) {}
+        }
+    });
 };
 
 window.openHighlightModal = function(text, title) {

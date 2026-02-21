@@ -329,6 +329,9 @@
             <button id="highlight-mode-btn" onclick="toggleHighlightMode()"
                 title="Activer le mode surlignage"
                 class="p-2 bg-amber-100 text-amber-600 rounded-lg text-sm font-bold transition-all">✏️</button>
+            <button id="save-selection-btn" onclick="saveSelection()"
+                title="Enregistrer la sélection"
+                class="hidden p-2 bg-emerald-100 text-emerald-600 rounded-lg text-sm font-bold transition-all">💾</button>
             <button onclick="rendition.prev()" class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">◀</button>
             <button onclick="rendition.next()" class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">▶</button>
         </div>
@@ -354,18 +357,6 @@
     <script src="reader.js"></script>
     <script src="app.js"></script>
 
-    <!-- DEBUG PANEL - remove after fix -->
-    <div id="debug-panel" style="position:fixed;bottom:60px;left:0;right:0;z-index:9999;background:rgba(0,0,0,0.85);color:#0f0;font-size:11px;font-family:monospace;padding:6px;max-height:160px;overflow-y:auto;display:none"></div>
-    <script>
-        window._dbg = function(msg) {
-            var p = document.getElementById('debug-panel');
-            if (!p) return;
-            p.style.display = 'block';
-            p.innerHTML += '<div>' + new Date().toISOString().slice(11,19) + ' ' + msg + '</div>';
-            p.scrollTop = p.scrollHeight;
-            console.log(msg);
-        };
-    </script>
 
     <!-- Modal surlignage -->
     <div id="highlight-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4"
