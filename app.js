@@ -183,6 +183,8 @@ window.closeReader = function() {
         epubCont.innerHTML = "";
         epubCont.classList.add('hidden');
     }
+    const bottomBar = document.getElementById('reader-bottom-bar');
+    if (bottomBar) bottomBar.classList.add('hidden');
     const shell = document.getElementById('reader-shell');
     if (shell) shell.style.background = '';
     window.removeEventListener("keydown", handleKeyNav);
@@ -534,7 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.showSection('ebook-section');
+    window.showSection('form-section');
 });
 
 // Filet de sécurité retiré car géré par Reader.js avec Overlay

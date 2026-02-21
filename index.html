@@ -27,7 +27,33 @@
 
 
 
-    <main class="p-4 min-h-screen">
+   <nav class="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 z-50 lg:top-0 lg:left-0 lg:w-64 lg:h-full lg:border-t-0 lg:border-r flex lg:flex-col justify-around lg:justify-start p-2 lg:p-6 gap-2">
+    <div class="hidden lg:block mb-8 px-2">
+        <h2 class="text-xl font-black text-indigo-600 tracking-tighter uppercase">Quizz App</h2>
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Library v1.0</p>
+    </div>
+
+    <button onclick="showSection('form-section')" id="nav-form" 
+        class="flex flex-col lg:flex-row items-center gap-1 lg:gap-3 px-4 py-2 lg:py-3 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all w-full text-sm font-bold group">
+        <span class="text-xl group-hover:scale-110 transition-transform">📝</span>
+        <span>Ajouter</span>
+    </button>
+
+    <button onclick="showSection('quiz-section')" id="nav-quiz" 
+        class="flex flex-col lg:flex-row items-center gap-1 lg:gap-3 px-4 py-2 lg:py-3 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all w-full text-sm font-bold group">
+        <span class="text-xl group-hover:scale-110 transition-transform">🧠</span>
+        <span>Quiz</span>
+    </button>
+
+    <button onclick="showSection('ebook-section')" id="nav-ebook" 
+        class="flex flex-col lg:flex-row items-center gap-1 lg:gap-3 px-4 py-2 lg:py-3 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all w-full text-sm font-bold group">
+        <span class="text-xl group-hover:scale-110 transition-transform">📚</span>
+        <span>Livres</span>
+    </button>
+</nav>
+
+
+    <main class="lg:ml-64 p-4 pb-24 lg:pb-8 min-h-screen flex items-center justify-center">
 
         
 
@@ -239,7 +265,60 @@
 
         </section>
 
-       <section id="ebook-section" class="hidden max-w-2xl mx-auto p-4 animate-reveal">
+       <section id="ebook-section" class="hidden max-w-5xl mx-auto p-6 animate-reveal">
+    <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+        <div>
+            <h2 class="text-4xl font-extrabold text-slate-800 tracking-tight">Ma Bibliothèque</h2>
+            <p class="text-slate-500 mt-2">Gérez et lisez vos ressources PDF.</p>
+        </div>
+        <button onclick="toggleAddEbookForm()" class="group flex items-center gap-3 bg-white border-2 border-slate-100 px-6 py-3 rounded-2xl font-bold text-slate-700 hover:border-indigo-500 hover:text-indigo-600 transition-all shadow-sm">
+            <span id="toggle-icon" class="text-indigo-500 transition-transform group-hover:rotate-90">➕</span>
+            <span id="toggle-text">Ajouter un livre</span>
+        </button>
+    </div>
+
+    <div id="add-ebook-container" class="hidden mb-12 animate-reveal">
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-2 h-full bg-indigo-500"></div>
+            
+            <form id="ebook-admin-form" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Titre du livre</label>
+                        <input type="text" name="title" required class="w-full px-4 py-3 rounded-2xl border-2 border-slate-50 focus:border-indigo-500 focus:bg-white bg-slate-50/50 outline-none transition-all" placeholder="Ex: Histoire de l'Art">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">Auteur</label>
+                            <input type="text" name="author" class="w-full px-4 py-3 rounded-2xl border-2 border-slate-50 focus:border-indigo-500 bg-slate-50/50 outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">Catégorie</label>
+                            <input type="text" name="category" class="w-full px-4 py-3 rounded-2xl border-2 border-slate-50 focus:border-indigo-500 bg-slate-50/50 outline-none transition-all">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">URL de la Couverture (Image)</label>
+                        <input type="url" name="cover_url" class="w-full px-4 py-3 rounded-2xl border-2 border-slate-50 focus:border-indigo-500 bg-slate-50/50 outline-none transition-all" placeholder="https://...">
+                    </div>
+                 <div>
+    <label class="block text-sm font-bold text-slate-700 mb-2">Fichier Ebook (URL .epub ou .pdf)</label>
+    <input type="file" name="ebook_file" id="ebook-file-input" accept=".pdf,.epub" required 
+           class="w-full px-4 py-3 rounded-2xl border-2 border-slate-50 focus:border-indigo-500 bg-slate-50/50 outline-none transition-all" 
+           placeholder="fichier .epub ou .pdf">
+    <p class="text-[10px] text-slate-400 mt-1 italic">Note : Le format EPUB nécessite un lecteur spécial intégré.</p>
+</div>
+                    <button type="submit" id="ebook-submit-btn" class="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-indigo-600 transform active:scale-95 transition-all shadow-lg shadow-indigo-100">
+                        Enregistrer dans la bibliothèque
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <div id="ebook-grid"></div>
 
     <div id="reader-container" class="hidden animate-reveal">
@@ -266,10 +345,20 @@
     </div>
 
     <!-- Reading area -->
-    <div id="reader-shell" class="max-w-2xl mx-auto rounded-2xl shadow-xl overflow-hidden border border-slate-200 h-[calc(100dvh-80px)] lg:h-[92vh] relative bg-white">
+    <div id="reader-shell" class="max-w-2xl mx-auto rounded-2xl shadow-xl overflow-hidden border border-slate-200 h-[calc(100dvh-155px)] lg:h-[85vh] relative bg-white">
         <iframe id="pdf-viewer" class="w-full h-full hidden" frameborder="0"></iframe>
         <div id="epub-viewer" class="w-full h-full hidden"></div>
         <div id="reader-overlay" class="absolute inset-0 z-[100] cursor-pointer hidden"></div>
+    </div>
+
+    <!-- Bottom controls bar (epub only) -->
+    <div id="reader-bottom-bar" class="hidden max-w-2xl mx-auto mt-3 flex items-center justify-between px-5 py-3 bg-white rounded-xl shadow-sm border border-slate-100">
+        <div class="flex items-center gap-2">
+            <button onclick="decreaseFontSize()" class="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-200 transition-all">A−</button>
+            <button onclick="increaseFontSize()" class="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-200 transition-all">A+</button>
+        </div>
+        <span id="reader-progress-text" class="text-xs font-semibold text-slate-400 tracking-widest">0%</span>
+        <button onclick="cycleReaderTheme()" id="theme-btn" class="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-slate-200 transition-all">☀️</button>
     </div>
 
 </div>
