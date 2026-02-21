@@ -134,18 +134,24 @@ setupNavigation: function(containerId) {
     },
 
     injectMobileSelectionHandler: function(contents) {
+        console.log("📲 injectMobileSelectionHandler appelé", contents);
         const doc = contents && contents.document;
-        if (!doc) return;
+        if (!doc) { console.warn("❌ doc est null, abandon"); return; }
+        console.log("✅ doc disponible:", doc);
 
         let selectionTimer = null;
         doc.addEventListener('selectionchange', () => {
+            console.log("✏️ selectionchange détecté");
             clearTimeout(selectionTimer);
             selectionTimer = setTimeout(() => {
                 const sel = doc.getSelection();
                 const text = sel ? sel.toString().trim() : '';
+                console.log("📝 Texte sélectionné:", JSON.stringify(text), "longueur:", text.length);
                 const modalAlreadyOpen = !document.getElementById('highlight-modal')?.classList.contains('hidden');
+                console.log("🪟 Modal déjà ouverte:", modalAlreadyOpen);
                 if (text.length > 5 && !modalAlreadyOpen) {
                     const title = document.getElementById('reader-title')?.textContent || '';
+                    console.log("🚀 Ouverture modal pour:", title);
                     window.openHighlightModal(text, title);
                 }
             }, 600);
