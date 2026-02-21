@@ -177,7 +177,10 @@ setupNavigation: function(containerId) {
                 "padding": "20px 15px !important",
                 "line-height": "1.6 !important",
                 "color": "#1a1a1a !important",
-                "background": "#ffffff !important"
+                "background": "#ffffff !important",
+                "-webkit-user-select": "text !important",
+                "user-select": "text !important",
+                "-webkit-touch-callout": "default !important"
             },
             "p": { "margin-bottom": "1.2em !important" }
         });
