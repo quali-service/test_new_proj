@@ -109,8 +109,6 @@ window.openReader = function(url, title) {
     if (url.toLowerCase().endsWith('.epub')) {
         viewer.classList.add('hidden');
         if (epubNav) epubNav.classList.remove('hidden');
-        const bottomBar = document.getElementById('reader-bottom-bar');
-        if (bottomBar) bottomBar.classList.remove('hidden');
         if (epubCont) {
             epubCont.classList.remove('hidden');
             epubCont.innerHTML = "<div class='flex flex-col items-center justify-center h-full'><div class='animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4'></div><p class='text-slate-500'>Chargement sécurisé...</p></div>";
