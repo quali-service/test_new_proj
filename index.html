@@ -330,6 +330,9 @@
         </button>
         <h3 id="reader-title" class="font-bold text-slate-600 truncate px-4 flex-1 text-center text-sm"></h3>
         <div id="epub-nav" class="hidden flex gap-1.5">
+            <button id="toc-btn" onclick="openToc()"
+                title="Table des matières"
+                class="hidden p-2 bg-slate-100 text-slate-500 rounded-lg text-sm font-bold">☰</button>
             <button id="highlight-mode-btn" onclick="toggleHighlightMode()"
                 title="Activer le mode surlignage"
                 class="p-2 bg-amber-100 text-amber-600 rounded-lg text-sm font-bold transition-all">✏️</button>
@@ -367,6 +370,18 @@
     <script src="reader.js"></script>
     <script src="app.js"></script>
 
+
+    <!-- TOC backdrop -->
+    <div id="toc-backdrop" class="hidden fixed inset-0 z-[150] bg-black/40" onclick="closeToc()"></div>
+
+    <!-- TOC slide-up panel -->
+    <div id="toc-panel" class="hidden fixed bottom-0 left-0 right-0 z-[160] bg-white rounded-t-3xl shadow-2xl max-h-[70vh] flex flex-col animate-slide-up">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
+            <h3 class="font-bold text-slate-800 text-lg">Chapitres</h3>
+            <button onclick="closeToc()" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">&times;</button>
+        </div>
+        <div id="toc-list" class="overflow-y-auto flex-1 px-2 py-2"></div>
+    </div>
 
     <!-- Modal surlignage -->
     <div id="highlight-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4"

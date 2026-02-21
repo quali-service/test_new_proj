@@ -135,6 +135,15 @@ window.openReader = function(url, title) {
                             localStorage.setItem('epub-pos-' + url, location.start.cfi);
                         }
                     });
+                    // Load TOC
+                    Reader.loadToc().then(toc => {
+                        if (toc && toc.length > 0) {
+                            const tocBtn = document.getElementById('toc-btn');
+                            if (tocBtn) tocBtn.classList.remove('hidden');
+                            const tocList = document.getElementById('toc-list');
+                            if (tocList) tocList.innerHTML = toc.map(item => renderTocItem(item)).join('');
+                        }
+                    });
                     console.log("🚀 Reader.init terminé" + (savedCfi ? " — reprise à la page sauvegardée" : ""));
                 }).catch(err => {
                     console.error("❌ Erreur d'initialisation du Reader:", err);
@@ -173,6 +182,12 @@ window.closeReader = function() {
     const shell = document.getElementById('reader-shell');
     if (shell) shell.style.background = '';
     window.removeEventListener("keydown", handleKeyNav);
+    // Reset TOC
+    const tocBtn = document.getElementById('toc-btn');
+    if (tocBtn) tocBtn.classList.add('hidden');
+    const tocList = document.getElementById('toc-list');
+    if (tocList) tocList.innerHTML = '';
+    window.closeToc();
 
     // Reset highlight mode
     highlightModeActive = false;
@@ -242,6 +257,36 @@ window.saveSelection = function() {
             } catch(e) {}
         }
     });
+};
+
+// --- TOC ---
+
+function renderTocItem(item, depth) {
+    depth = depth || 0;
+    const paddingLeft = (16 + depth * 14) + 'px';
+    const href = (item.href || '').replace(/'/g, "\\'");
+    let html = `<button onclick="goToChapter('${href}')"
+        style="padding-left:${paddingLeft}"
+        class="w-full text-left py-3 pr-4 border-b border-slate-50 text-slate-700 hover:text-indigo-600 hover:bg-indigo-50/60 transition-all text-sm rounded-lg">${item.label.trim()}</button>`;
+    if (item.subitems && item.subitems.length > 0) {
+        html += item.subitems.map(sub => renderTocItem(sub, depth + 1)).join('');
+    }
+    return html;
+}
+
+window.openToc = function() {
+    document.getElementById('toc-backdrop').classList.remove('hidden');
+    document.getElementById('toc-panel').classList.remove('hidden');
+};
+
+window.closeToc = function() {
+    document.getElementById('toc-backdrop').classList.add('hidden');
+    document.getElementById('toc-panel').classList.add('hidden');
+};
+
+window.goToChapter = function(href) {
+    if (window.rendition) window.rendition.display(href);
+    window.closeToc();
 };
 
 window.openHighlightModal = function(text, title) {

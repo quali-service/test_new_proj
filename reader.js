@@ -16,7 +16,8 @@ const Reader = {
             height: "100%",
             flow: "paginated",
             manager: "default",
-            spread: "none"
+            spread: "none",
+            minSpreadWidth: 9999
         });
 
         // Surveillance du chargement global
@@ -172,6 +173,10 @@ setupNavigation: function(containerId) {
             const progressText = document.getElementById('reader-progress-text');
             if (progressText) progressText.style.color = this.currentTheme === 'dark' ? '#666' : '';
         }
+    },
+
+    loadToc: function() {
+        return this.book.loaded.navigation.then(nav => nav.toc || []);
     },
 
     next: function() {
