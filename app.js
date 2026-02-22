@@ -14,6 +14,7 @@ const HEADERS = {
 window.rendition = null;
 let highlightModeActive = false;
 let allEbooks = [];
+window.currentBookAuthor = '';
 
 // --- 2. NAVIGATION & UI ---
 
@@ -67,9 +68,11 @@ function renderEbookList(ebooks) {
     grid.innerHTML = ebooks.map(book => {
         const epub = isEpub(book.file_url);
         const safeTitle = book.title.replace(/'/g, "\\'");
+        const authorName = book.authors?.name || '';
+        const safeAuthor = authorName.replace(/'/g, "\\'");
         return `
         <div class="group flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer"
-             onclick="openReader('${book.file_url}', '${safeTitle}')">
+             onclick="openReader('${book.file_url}', '${safeTitle}', '${safeAuthor}')">
             <div class="w-11 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${epub ? 'bg-indigo-50' : 'bg-rose-50'}">
                 <span class="text-2xl">${epub ? '📖' : '📄'}</span>
             </div>
@@ -79,7 +82,7 @@ function renderEbookList(ebooks) {
                     <span class="text-[10px] font-bold uppercase tracking-wider ${epub ? 'text-emerald-500' : 'text-rose-400'}">${epub ? 'EPUB' : 'PDF'}</span>
                 </div>
                 <h3 class="font-bold text-slate-800 truncate">${book.title}</h3>
-                <p class="text-sm text-slate-400 truncate">${book.author || ''}</p>
+                <p class="text-sm text-slate-400 truncate">${authorName}</p>
             </div>
             <span class="text-slate-300 group-hover:text-indigo-400 transition-colors text-lg flex-shrink-0">›</span>
         </div>`;
@@ -117,7 +120,7 @@ window.filterBooks = function(query) {
                 book,
                 score: Math.max(
                     fuzzyScore(q, book.title || ''),
-                    fuzzyScore(q, book.author || ''),
+                    fuzzyScore(q, book.authors?.name || ''),
                     fuzzyScore(q, book.category || '')
                 )
             }))
@@ -136,7 +139,7 @@ async function loadEbooks() {
     grid.innerHTML = `<div class="col-span-full flex justify-center p-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>`;
 
     try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/ebooks?select=*`, { headers: HEADERS });
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/ebooks?select=*,authors(id,name)`, { headers: HEADERS });
         const ebooks = await response.json();
         allEbooks = ebooks || [];
         renderEbookList(allEbooks);
@@ -146,8 +149,9 @@ async function loadEbooks() {
 }
 window.loadEbooks = loadEbooks;
 
-window.openReader = function(url, title) {
+window.openReader = function(url, title, author) {
     console.log("📖 Ouverture de :", title);
+    window.currentBookAuthor = author || '';
     const grid = document.getElementById('ebook-grid');
     const container = document.getElementById('reader-container');
     const viewer = document.getElementById('pdf-viewer');
@@ -270,6 +274,8 @@ window.closeReader = function() {
     const tocList = document.getElementById('toc-list');
     if (tocList) tocList.innerHTML = '';
     window.closeToc();
+
+    window.currentBookAuthor = '';
 
     // Reset highlight mode
     highlightModeActive = false;
@@ -478,9 +484,61 @@ function displayResults(isCorrect, explanation) {
     document.getElementById('submit-btn').classList.add('hidden');
 }
 
-// --- 5. INITIALISATION ---
+// --- 5. AUTHOR TYPEAHEAD ---
+
+let _authorTimer = null;
+
+window.searchAuthors = async function(query) {
+    const dropdown = document.getElementById('author-dropdown');
+    document.getElementById('author-id-hidden').value = '';
+    if (!query.trim()) { dropdown.classList.add('hidden'); return; }
+    clearTimeout(_authorTimer);
+    _authorTimer = setTimeout(async () => {
+        try {
+            const res = await fetch(
+                `${SUPABASE_URL}/rest/v1/authors?name=ilike.*${encodeURIComponent(query.trim())}*&limit=6`,
+                { headers: HEADERS }
+            );
+            const authors = await res.json();
+            let html = (authors || []).map(a =>
+                `<button type="button" onclick="selectAuthor(${a.id}, '${a.name.replace(/'/g, "\\'")}')"
+                    class="w-full text-left px-4 py-2.5 hover:bg-indigo-50 text-slate-700 text-sm border-b border-slate-100 last:border-0 transition-colors">${a.name}</button>`
+            ).join('');
+            html += `<button type="button" onclick="createAuthor('${query.trim().replace(/'/g, "\\'")}')"
+                class="w-full text-left px-4 py-2.5 hover:bg-emerald-50 text-emerald-600 text-sm font-semibold transition-colors">➕ Créer "${query.trim()}"</button>`;
+            dropdown.innerHTML = html;
+            dropdown.classList.remove('hidden');
+        } catch(e) {}
+    }, 200);
+};
+
+window.selectAuthor = function(id, name) {
+    document.getElementById('author-search-input').value = name;
+    document.getElementById('author-id-hidden').value = id;
+    document.getElementById('author-dropdown').classList.add('hidden');
+};
+
+window.createAuthor = async function(name) {
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/authors`, {
+            method: 'POST',
+            headers: { ...HEADERS, 'Prefer': 'return=representation' },
+            body: JSON.stringify({ name })
+        });
+        const data = await res.json();
+        const author = Array.isArray(data) ? data[0] : data;
+        if (author && author.id) window.selectAuthor(author.id, author.name);
+    } catch(e) { alert('Erreur création auteur'); }
+};
+
+// --- 6. INITIALISATION ---
 
 document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#author-search-input') && !e.target.closest('#author-dropdown')) {
+            document.getElementById('author-dropdown')?.classList.add('hidden');
+        }
+    });
     // A. Formulaire Ebook
     const ebookForm = document.getElementById('ebook-admin-form');
     if (ebookForm) {
@@ -506,9 +564,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (!uploadRes.ok) throw new Error("Erreur Storage");
 
+                const authorIdRaw = document.getElementById('author-id-hidden').value;
                 const payload = {
                     title: formData.get('title'),
-                    author: formData.get('author'),
+                    author_id: authorIdRaw ? parseInt(authorIdRaw) : null,
                     category: formData.get('category'),
                     cover_url: formData.get('cover_url'),
                     file_url: `${SUPABASE_URL}/storage/v1/object/public/ebooks/${fileName}`,
@@ -523,6 +582,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 alert("Livre ajouté !");
                 e.target.reset();
+                document.getElementById('author-search-input').value = '';
+                document.getElementById('author-id-hidden').value = '';
                 window.toggleAddEbookForm();
                 window.loadEbooks();
             } catch (err) {
@@ -615,4 +676,4 @@ document.addEventListener('DOMContentLoaded', () => {
     window.showSection('ebook-section');
 });
 
-// Filet de sécurité retiré car géré par Reader.js avec Overlay
+// Navigation overlay géré par Reader.js
