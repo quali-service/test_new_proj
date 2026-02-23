@@ -163,11 +163,15 @@ setupNavigation: function(containerId) {
     updateProgress: function(location) {
         const loc = location || this.rendition.currentLocation();
         if (loc && loc.start && this.isReady) {
-            const percent = this.book.locations.percentageFromCfi(loc.start.cfi);
-            const percentage = Math.floor(percent * 100);
+            const currentPage = this.book.locations.locationFromCfi(loc.start.cfi) + 1;
+            const totalPages = this.book.locations.length();
+            const percent = Math.floor((currentPage / totalPages) * 100);
 
             const progressText = document.getElementById("reader-progress-text");
-            if (progressText) progressText.textContent = `${percentage}%`;
+            if (progressText) progressText.textContent = `p. ${currentPage} / ${totalPages}`;
+
+            const progressBar = document.getElementById("reader-progress-bar");
+            if (progressBar) progressBar.style.width = `${percent}%`;
         }
     },
 
