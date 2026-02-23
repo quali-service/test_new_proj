@@ -110,6 +110,8 @@ setupNavigation: function(containerId) {
     }
 
     let _lastNav = 0;
+    let _touchStartX = 0;
+    let _touchStartY = 0;
 
     const handleNav = (clientX, source) => {
         const now = Date.now();
@@ -139,9 +141,20 @@ setupNavigation: function(containerId) {
         handleNav(e.clientX, 'click');
     });
 
+    overlay.addEventListener('touchstart', (e) => {
+        _touchStartX = e.touches[0].clientX;
+        _touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
     overlay.addEventListener('touchend', (e) => {
-        console.log('[NAV] 📱 touchend event fired');
         const touch = e.changedTouches[0];
+        const deltaX = Math.abs(touch.clientX - _touchStartX);
+        const deltaY = Math.abs(touch.clientY - _touchStartY);
+        console.log(`[NAV] 📱 touchend — deltaX:${Math.round(deltaX)} deltaY:${Math.round(deltaY)}`);
+        if (deltaY > 10) {
+            console.log('[NAV] 🚫 Ignored — vertical scroll gesture');
+            return;
+        }
         handleNav(touch.clientX, 'touch');
         e.preventDefault();
     }, { passive: false });
