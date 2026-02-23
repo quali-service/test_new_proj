@@ -489,17 +489,18 @@ function displayResults(isCorrect, explanation) {
 let _authorTimer = null;
 
 window.searchAuthors = async function(query) {
+    console.log('[searchAuthors] called with:', query);
     const dropdown = document.getElementById('author-dropdown');
     document.getElementById('author-id-hidden').value = '';
     if (!query.trim()) { dropdown.classList.add('hidden'); return; }
     clearTimeout(_authorTimer);
     _authorTimer = setTimeout(async () => {
         try {
-            const res = await fetch(
-                `${SUPABASE_URL}/rest/v1/authors?name=ilike.*${encodeURIComponent(query.trim())}*&limit=6`,
-                { headers: HEADERS }
-            );
+            const url = `${SUPABASE_URL}/rest/v1/authors?name=ilike.%25${encodeURIComponent(query.trim())}%25&limit=6`;
+            console.log('[searchAuthors] fetching', url);
+            const res = await fetch(url, { headers: HEADERS });
             const authors = await res.json();
+            console.log('[searchAuthors] response', res.status, authors);
             let html = (authors || []).map(a =>
                 `<button type="button" onclick="selectAuthor(${a.id}, '${a.name.replace(/'/g, "\\'")}')"
                     class="w-full text-left px-4 py-2.5 hover:bg-indigo-50 text-slate-700 text-sm border-b border-slate-100 last:border-0 transition-colors">${a.name}</button>`
@@ -508,7 +509,7 @@ window.searchAuthors = async function(query) {
                 class="w-full text-left px-4 py-2.5 hover:bg-emerald-50 text-emerald-600 text-sm font-semibold transition-colors">➕ Créer "${query.trim()}"</button>`;
             dropdown.innerHTML = html;
             dropdown.classList.remove('hidden');
-        } catch(e) {}
+        } catch(e) { console.error('[searchAuthors] error', e); }
     }, 200);
 };
 
