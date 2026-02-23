@@ -97,7 +97,7 @@ const Reader = {
 setupNavigation: function(containerId) {
     const container = document.getElementById(containerId);
     const overlay = document.getElementById('reader-overlay');
-    
+
     // On rend l'overlay visible et on le plaque sur le viewer
     if (overlay) {
         overlay.style.display = 'block';
@@ -109,33 +109,33 @@ setupNavigation: function(containerId) {
         overlay.style.height = rect.height + 'px';
     }
 
+    let _lastNav = 0;
+
     const handleNav = (clientX) => {
+        const now = Date.now();
+        if (now - _lastNav < 400) return;
+        _lastNav = now;
+
         const width = container.offsetWidth;
         const rect = container.getBoundingClientRect();
         const xRelatif = clientX - rect.left;
 
-        console.log(`[OVERLAY] Click à ${Math.round(xRelatif)}px sur ${width}px`);
-
         if (xRelatif < width * 0.3) {
-            console.log("⬅️ Retour");
             this.prev();
         } else {
-            console.log("➡️ Suivant");
             this.next();
         }
     };
 
     // On écoute sur la VITRE, pas sur l'iframe
     overlay.addEventListener('click', (e) => {
-        console.log("🖱️ Overlay Click");
         handleNav(e.clientX);
     });
 
     overlay.addEventListener('touchend', (e) => {
-        console.log("📱 Overlay Touch");
         const touch = e.changedTouches[0];
         handleNav(touch.clientX);
-        e.preventDefault(); 
+        e.preventDefault();
     }, { passive: false });
 },
 
