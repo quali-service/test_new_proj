@@ -111,9 +111,13 @@ setupNavigation: function(containerId) {
 
     let _lastNav = 0;
 
-    const handleNav = (clientX) => {
+    const handleNav = (clientX, source) => {
         const now = Date.now();
-        if (now - _lastNav < 400) return;
+        const elapsed = now - _lastNav;
+        if (elapsed < 400) {
+            console.log(`[NAV] 🚫 Blocked (${source}) — only ${elapsed}ms since last nav`);
+            return;
+        }
         _lastNav = now;
 
         const width = container.offsetWidth;
@@ -121,20 +125,24 @@ setupNavigation: function(containerId) {
         const xRelatif = clientX - rect.left;
 
         if (xRelatif < width * 0.3) {
+            console.log(`[NAV] ⬅️ prev (${source}, x=${Math.round(xRelatif)}px)`);
             this.prev();
         } else {
+            console.log(`[NAV] ➡️ next (${source}, x=${Math.round(xRelatif)}px)`);
             this.next();
         }
     };
 
     // On écoute sur la VITRE, pas sur l'iframe
     overlay.addEventListener('click', (e) => {
-        handleNav(e.clientX);
+        console.log('[NAV] 🖱️ click event fired');
+        handleNav(e.clientX, 'click');
     });
 
     overlay.addEventListener('touchend', (e) => {
+        console.log('[NAV] 📱 touchend event fired');
         const touch = e.changedTouches[0];
-        handleNav(touch.clientX);
+        handleNav(touch.clientX, 'touch');
         e.preventDefault();
     }, { passive: false });
 },
