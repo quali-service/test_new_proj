@@ -443,11 +443,11 @@ window.loadQuestion = async function() {
     }
 
     try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/questions?select=*`, { headers: HEADERS });
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/questions?select=*,ressources(author_id)`, { headers: HEADERS });
         const allQuestions = await response.json();
 
         const questions = quizAuthorFilter
-            ? (allQuestions || []).filter(q => q.author_id === quizAuthorFilter)
+            ? (allQuestions || []).filter(q => q.ressources?.author_id === quizAuthorFilter)
             : (allQuestions || []);
 
         if (!questions || questions.length === 0) {
