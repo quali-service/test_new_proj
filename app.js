@@ -488,24 +488,21 @@ function displayResults(isCorrect, explanation) {
 
 let _authorTimer = null;
 
-window.searchAuthors = async function(query) {
-    console.log('[searchAuthors] called with:', query);
-    const dropdown = document.getElementById('author-dropdown');
-    document.getElementById('author-id-hidden').value = '';
+window.searchAuthors = async function(instanceId, query) {
+    const dropdown = document.getElementById(`${instanceId}-author-dropdown`);
+    document.getElementById(`${instanceId}-author-id-hidden`).value = '';
     if (!query.trim()) { dropdown.classList.add('hidden'); return; }
     clearTimeout(_authorTimer);
     _authorTimer = setTimeout(async () => {
         try {
             const url = `${SUPABASE_URL}/rest/v1/authors?name=ilike.%25${encodeURIComponent(query.trim())}%25&limit=6`;
-            console.log('[searchAuthors] fetching', url);
             const res = await fetch(url, { headers: HEADERS });
             const authors = await res.json();
-            console.log('[searchAuthors] response', res.status, authors);
             let html = (authors || []).map(a =>
-                `<button type="button" onclick="selectAuthor(${a.id}, '${a.name.replace(/'/g, "\\'")}')"
+                `<button type="button" onclick="selectAuthor('${instanceId}', ${a.id}, '${a.name.replace(/'/g, "\\'")}')"
                     class="w-full text-left px-4 py-2.5 hover:bg-indigo-50 text-slate-700 text-sm border-b border-slate-100 last:border-0 transition-colors">${a.name}</button>`
             ).join('');
-            html += `<button type="button" onclick="createAuthor('${query.trim().replace(/'/g, "\\'")}')"
+            html += `<button type="button" onclick="createAuthor('${instanceId}', '${query.trim().replace(/'/g, "\\'")}')"
                 class="w-full text-left px-4 py-2.5 hover:bg-emerald-50 text-emerald-600 text-sm font-semibold transition-colors">➕ Créer "${query.trim()}"</button>`;
             dropdown.innerHTML = html;
             dropdown.classList.remove('hidden');
@@ -513,13 +510,13 @@ window.searchAuthors = async function(query) {
     }, 200);
 };
 
-window.selectAuthor = function(id, name) {
-    document.getElementById('author-search-input').value = name;
-    document.getElementById('author-id-hidden').value = id;
-    document.getElementById('author-dropdown').classList.add('hidden');
+window.selectAuthor = function(instanceId, id, name) {
+    document.getElementById(`${instanceId}-author-search-input`).value = name;
+    document.getElementById(`${instanceId}-author-id-hidden`).value = id;
+    document.getElementById(`${instanceId}-author-dropdown`).classList.add('hidden');
 };
 
-window.createAuthor = async function(name) {
+window.createAuthor = async function(instanceId, name) {
     try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/authors`, {
             method: 'POST',
@@ -528,7 +525,7 @@ window.createAuthor = async function(name) {
         });
         const data = await res.json();
         const author = Array.isArray(data) ? data[0] : data;
-        if (author && author.id) window.selectAuthor(author.id, author.name);
+        if (author && author.id) window.selectAuthor(instanceId, author.id, author.name);
     } catch(e) { alert('Erreur création auteur'); }
 };
 
@@ -536,9 +533,11 @@ window.createAuthor = async function(name) {
 
 document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', (e) => {
-        if (!e.target.closest('#author-search-input') && !e.target.closest('#author-dropdown')) {
-            document.getElementById('author-dropdown')?.classList.add('hidden');
-        }
+        ['ebook', 'ressource'].forEach(id => {
+            if (!e.target.closest(`#${id}-author-search-input`) && !e.target.closest(`#${id}-author-dropdown`)) {
+                document.getElementById(`${id}-author-dropdown`)?.classList.add('hidden');
+            }
+        });
     });
     // A. Formulaire Ebook
     const ebookForm = document.getElementById('ebook-admin-form');
@@ -565,7 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (!uploadRes.ok) throw new Error("Erreur Storage");
 
-                const authorIdRaw = document.getElementById('author-id-hidden').value;
+                const authorIdRaw = document.getElementById('ebook-author-id-hidden').value;
                 const payload = {
                     title: formData.get('title'),
                     author_id: authorIdRaw ? parseInt(authorIdRaw) : null,
@@ -583,8 +582,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 alert("Livre ajouté !");
                 e.target.reset();
-                document.getElementById('author-search-input').value = '';
-                document.getElementById('author-id-hidden').value = '';
+                document.getElementById('ebook-author-search-input').value = '';
+                document.getElementById('ebook-author-id-hidden').value = '';
                 window.toggleAddEbookForm();
                 window.loadEbooks();
             } catch (err) {
@@ -604,11 +603,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const btn = document.getElementById('form-submit-btn');
             const formData = new FormData(e.target);
             
+            const ressourceAuthorIdRaw = document.getElementById('ressource-author-id-hidden').value;
             const payload = {
                 title: formData.get('titre'),
                 type: formData.get('nature'),
                 learning: formData.get('apprentissage'),
                 source_url: formData.get('url'),
+                author_id: ressourceAuthorIdRaw ? parseInt(ressourceAuthorIdRaw) : null,
                 created_at: new Date().toISOString()
             };
 
@@ -626,6 +627,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 alert("Ressource ajoutée !");
                 e.target.reset();
+                document.getElementById('ressource-author-search-input').value = '';
+                document.getElementById('ressource-author-id-hidden').value = '';
             } catch (err) {
                 alert("Erreur : " + err.message);
             } finally {
