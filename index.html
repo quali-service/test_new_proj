@@ -210,6 +210,17 @@
 
         <section id="quiz-section" class="hidden w-full max-w-lg animate-reveal">
 
+            <!-- Author filter bar -->
+            <div class="mb-4">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Filtrer par auteur</p>
+                <div id="quiz-author-filters" class="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                    <button onclick="setQuizAuthorFilter(null, this)"
+                        class="quiz-author-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-indigo-600 text-white shadow-sm">
+                        Tous
+                    </button>
+                </div>
+            </div>
+
             <div class="glass-card rounded-[2rem] shadow-xl overflow-hidden">
 
                 <div class="h-1.5 w-full bg-slate-100">

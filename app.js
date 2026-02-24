@@ -39,7 +39,10 @@ window.showSection = function(sectionId) {
         }
     });
 
-    if (sectionId === 'quiz-section') window.loadQuestion();
+    if (sectionId === 'quiz-section') {
+        if (document.querySelectorAll('.quiz-author-chip').length <= 1) loadQuizAuthors();
+        window.loadQuestion();
+    }
     if (sectionId === 'ebook-section') window.loadEbooks();
 };
 
@@ -395,8 +398,35 @@ function handleKeyNav(e) {
 
 // --- 4. LOGIQUE QUIZ ---
 
-// Variable globale pour stocker l'ID de la dernière question vue
 let lastQuestionId = null;
+let quizAuthorFilter = null; // null = all
+
+window.setQuizAuthorFilter = function(authorId, btn) {
+    quizAuthorFilter = authorId;
+    document.querySelectorAll('.quiz-author-chip').forEach(c => {
+        c.classList.remove('bg-indigo-600', 'text-white', 'shadow-sm');
+        c.classList.add('bg-white', 'text-slate-500', 'border', 'border-slate-200');
+    });
+    btn.classList.remove('bg-white', 'text-slate-500', 'border', 'border-slate-200');
+    btn.classList.add('bg-indigo-600', 'text-white', 'shadow-sm');
+    window.loadQuestion();
+};
+
+async function loadQuizAuthors() {
+    const container = document.getElementById('quiz-author-filters');
+    if (!container) return;
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/authors?select=id,name&order=name`, { headers: HEADERS });
+        const authors = await res.json();
+        if (!authors || authors.length === 0) return;
+        const chips = authors.map(a => `
+            <button onclick="setQuizAuthorFilter(${a.id}, this)"
+                class="quiz-author-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-white text-slate-500 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600">
+                ${a.name}
+            </button>`).join('');
+        container.insertAdjacentHTML('beforeend', chips);
+    } catch(e) {}
+}
 
 window.loadQuestion = async function() {
     const loading = document.getElementById('loading');
@@ -414,10 +444,16 @@ window.loadQuestion = async function() {
 
     try {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/questions?select=*`, { headers: HEADERS });
-        const questions = await response.json();
-        
+        const allQuestions = await response.json();
+
+        const questions = quizAuthorFilter
+            ? (allQuestions || []).filter(q => q.author_id === quizAuthorFilter)
+            : (allQuestions || []);
+
         if (!questions || questions.length === 0) {
-            loading.innerHTML = "<p class='p-8 text-slate-400 text-center'>Aucune question disponible.</p>";
+            loading.classList.add('hidden');
+            if (content) content.classList.remove('hidden');
+            content.innerHTML = "<p class='p-8 text-slate-400 text-center'>Aucune question pour cet auteur.</p>";
             return;
         }
 
