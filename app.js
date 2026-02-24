@@ -434,8 +434,10 @@ window.loadQuestion = async function() {
     const result = document.getElementById('result');
     const submitBtn = document.getElementById('submit-btn');
 
+    const emptyState = document.getElementById('quiz-empty');
     if (loading) loading.classList.remove('hidden');
     if (content) content.classList.add('hidden');
+    if (emptyState) emptyState.classList.add('hidden');
     if (result) result.classList.add('hidden');
     if (submitBtn) {
         submitBtn.classList.remove('hidden');
@@ -451,9 +453,8 @@ window.loadQuestion = async function() {
             : (allQuestions || []);
 
         if (!questions || questions.length === 0) {
-            loading.classList.add('hidden');
-            if (content) content.classList.remove('hidden');
-            content.innerHTML = "<p class='p-8 text-slate-400 text-center'>Aucune question pour cet auteur.</p>";
+            if (loading) loading.classList.add('hidden');
+            if (emptyState) emptyState.classList.remove('hidden');
             return;
         }
 
