@@ -435,10 +435,12 @@ window.loadQuestion = async function() {
     const submitBtn = document.getElementById('submit-btn');
 
     const emptyState = document.getElementById('quiz-empty');
+    const related = document.getElementById('quiz-related');
     if (loading) loading.classList.remove('hidden');
     if (content) content.classList.add('hidden');
     if (emptyState) emptyState.classList.add('hidden');
     if (result) result.classList.add('hidden');
+    if (related) related.classList.add('hidden');
     if (submitBtn) {
         submitBtn.classList.remove('hidden');
         submitBtn.disabled = false;
@@ -506,11 +508,11 @@ function renderQuiz(data) {
         const formData = new FormData(e.target);
         const userAns = parseInt(formData.get('answer'));
         const isCorrect = userAns === data.reponse_correcte;
-        displayResults(isCorrect, data.explication);
+        displayResults(isCorrect, data.explication, data.question);
     };
 }
 
-function displayResults(isCorrect, explanation) {
+function displayResults(isCorrect, explanation, questionText) {
     const resDiv = document.getElementById('result');
     resDiv.classList.remove('hidden');
     resDiv.className = `mt-8 p-6 rounded-2xl border-2 ${isCorrect ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`;
@@ -519,6 +521,56 @@ function displayResults(isCorrect, explanation) {
     document.getElementById('explanation').textContent = explanation;
     if (isCorrect && typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
     document.getElementById('submit-btn').classList.add('hidden');
+
+    // Surface related resources below the explanation
+    if (questionText) loadRelatedResources(questionText);
+}
+
+async function loadRelatedResources(questionText) {
+    const container = document.getElementById('quiz-related');
+    if (!container) return;
+
+    container.innerHTML = `<div class="flex items-center gap-2 text-slate-400 text-xs py-2">
+        <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-400"></div>
+        Recherche de ressources liées...
+    </div>`;
+    container.classList.remove('hidden');
+
+    try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/search-resources-`, {
+            method: 'POST',
+            headers: { ...HEADERS, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: questionText, match_count: 3 })
+        });
+        const related = await res.json();
+
+        if (!related || related.length === 0) {
+            container.classList.add('hidden');
+            return;
+        }
+
+        container.innerHTML = `
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Pour aller plus loin</p>
+            <div class="flex flex-col gap-2">
+                ${related.map(r => `
+                    <a href="${r.source_url || '#'}" target="_blank" rel="noopener"
+                       class="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-100 hover:border-indigo-200 hover:shadow-sm transition-all group ${!r.source_url ? 'pointer-events-none' : ''}">
+                        <span class="text-lg flex-shrink-0 mt-0.5">${typeEmoji(r.type)}</span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-slate-700 group-hover:text-indigo-700 truncate">${r.title}</p>
+                            ${r.learning ? `<p class="text-xs text-slate-400 mt-0.5 line-clamp-2">${r.learning}</p>` : ''}
+                        </div>
+                        ${r.source_url ? `<span class="text-slate-300 group-hover:text-indigo-400 text-sm flex-shrink-0">›</span>` : ''}
+                    </a>`).join('')}
+            </div>`;
+    } catch(e) {
+        container.classList.add('hidden');
+    }
+}
+
+function typeEmoji(type) {
+    const map = { article: '📄', livre: '📖', video: '🎥', podcast: '🎧', cours: '🎓', outil: '🔧' };
+    return map[(type || '').toLowerCase()] || '📎';
 }
 
 // --- 5. AUTHOR TYPEAHEAD ---
