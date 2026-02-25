@@ -421,7 +421,7 @@ async function loadQuizAuthors() {
         if (!authors || authors.length === 0) return;
         const chips = authors.map(a => `
             <button onclick="setQuizAuthorFilter(${a.id}, this)"
-                class="quiz-author-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-white text-slate-500 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600">
+                class="quiz-author-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-white text-slate-500 border border-slate-200 hover:border-indigo-300">
                 ${a.name}
             </button>`).join('');
         container.insertAdjacentHTML('beforeend', chips);
