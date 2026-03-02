@@ -198,18 +198,39 @@ window.openReader = function(url, title, author) {
                 if (!res.ok) throw new Error("Accès refusé (401). Vérifiez vos permissions Storage.");
                 return res.arrayBuffer();
             })
-            .then(data => {
+            .then(async (data) => {
                 console.log("📦 Données ePub reçues, taille :", data.byteLength, "octets");
                 if (epubCont) epubCont.innerHTML = "";
 
-                const savedCfi = localStorage.getItem('epub-pos-' + url);
+                // Restore position from Supabase (works across devices + private mode)
+                let savedCfi = null;
+                try {
+                    const progressRes = await fetch(
+                        `${SUPABASE_URL}/rest/v1/reading_progress?book_url=eq.${encodeURIComponent(url)}&select=cfi`,
+                        { headers: HEADERS }
+                    );
+                    const progressData = await progressRes.json();
+                    savedCfi = progressData?.[0]?.cfi || null;
+                } catch(e) {}
 
                 Reader.init(data, "epub-viewer", savedCfi).then(() => {
                     window.rendition = Reader.rendition;
-                    // Save position on every page turn
+                    // Debounced save — writes to Supabase 2s after user stops turning pages
+                    let _saveProgressTimer = null;
                     window.rendition.on('relocated', (location) => {
                         if (location.start && location.start.cfi) {
-                            localStorage.setItem('epub-pos-' + url, location.start.cfi);
+                            clearTimeout(_saveProgressTimer);
+                            _saveProgressTimer = setTimeout(() => {
+                                fetch(`${SUPABASE_URL}/rest/v1/reading_progress`, {
+                                    method: 'POST',
+                                    headers: { ...HEADERS, 'Prefer': 'resolution=merge-duplicates' },
+                                    body: JSON.stringify({
+                                        book_url: url,
+                                        cfi: location.start.cfi,
+                                        updated_at: new Date().toISOString()
+                                    })
+                                }).catch(() => {});
+                            }, 2000);
                         }
                     });
                     // Load TOC
@@ -642,7 +663,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.innerHTML = "Téléchargement... ⏳";
 
             try {
-                const fileName = `${Date.now()}_${file.name.replace(/\s/g, '_')}`;
+                const fileName = `${Date.now()}_${file.name.normalize('NFC').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '_')}`;
                 const storageUrl = `${SUPABASE_URL}/storage/v1/object/ebooks/${fileName}`;
 
                 const uploadRes = await fetch(storageUrl, {
