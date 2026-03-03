@@ -64,6 +64,15 @@ const Reader = {
         // 🛡️ RÉ-INSERTION DE LA FONCTION MANQUANTE
         this.setupNavigation(containerId);
 
+        // Resize on orientation change / window resize
+        this._onWindowResize = () => {
+            clearTimeout(this._resizeTimer);
+            this._resizeTimer = setTimeout(() => {
+                if (this.rendition) this.rendition.resize();
+            }, 150);
+        };
+        window.addEventListener('resize', this._onWindowResize);
+
         // Écoute de la sélection de texte (mode surlignage)
         this.rendition.on('selected', (cfiRange, contents) => {
             const text = contents.window.getSelection().toString().trim();
@@ -209,6 +218,12 @@ setupNavigation: function(containerId) {
             const progressText = document.getElementById('reader-progress-text');
             if (progressText) progressText.style.color = this.currentTheme === 'dark' ? '#666' : '';
         }
+
+        // Recalculate page layout after font/theme change — prevents bottom clipping
+        clearTimeout(this._resizeTimer);
+        this._resizeTimer = setTimeout(() => {
+            if (this.rendition) this.rendition.resize();
+        }, 100);
     },
 
     loadToc: function() {
@@ -226,6 +241,14 @@ setupNavigation: function(containerId) {
     setHighlightMode: function(enabled) {
         const overlay = document.getElementById('reader-overlay');
         if (overlay) overlay.style.display = enabled ? 'none' : 'block';
+    },
+
+    destroy: function() {
+        if (this._onWindowResize) {
+            window.removeEventListener('resize', this._onWindowResize);
+            this._onWindowResize = null;
+        }
+        clearTimeout(this._resizeTimer);
     }
 };
 

@@ -303,7 +303,10 @@ window.closeReader = function() {
 
     // Reset highlight mode
     highlightModeActive = false;
-    if (window.Reader) window.Reader.setHighlightMode(false);
+    if (window.Reader) {
+        window.Reader.setHighlightMode(false);
+        window.Reader.destroy();
+    }
     const hlBtn = document.getElementById('highlight-mode-btn');
     if (hlBtn) {
         hlBtn.classList.remove('bg-amber-500', 'text-white');
