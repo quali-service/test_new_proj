@@ -122,19 +122,7 @@ setupNavigation: function(containerId) {
     let _touchStartX = 0;
     let _touchStartY = 0;
 
-    const handleNav = (clientX, clientY, source) => {
-        const rect = container.getBoundingClientRect();
-
-        // In immersive mode: any tap shows chrome; top/bottom 15% = chrome only (no nav)
-        if (document.body.classList.contains('immersive-reading')) {
-            window.showReaderChrome?.();
-            const yRelatif = clientY - rect.top;
-            if (yRelatif < rect.height * 0.15 || yRelatif > rect.height * 0.85) {
-                console.log(`[NAV] 💡 Chrome zone — showing chrome only`);
-                return;
-            }
-        }
-
+    const handleNav = (clientX, source) => {
         const now = Date.now();
         const elapsed = now - _lastNav;
         if (elapsed < 400) {
@@ -144,6 +132,7 @@ setupNavigation: function(containerId) {
         _lastNav = now;
 
         const width = container.offsetWidth;
+        const rect = container.getBoundingClientRect();
         const xRelatif = clientX - rect.left;
 
         if (xRelatif < width * 0.3) {
@@ -158,7 +147,7 @@ setupNavigation: function(containerId) {
     // On écoute sur la VITRE, pas sur l'iframe
     overlay.addEventListener('click', (e) => {
         console.log('[NAV] 🖱️ click event fired');
-        handleNav(e.clientX, e.clientY, 'click');
+        handleNav(e.clientX, 'click');
     });
 
     overlay.addEventListener('touchstart', (e) => {
@@ -175,7 +164,7 @@ setupNavigation: function(containerId) {
             console.log('[NAV] 🚫 Ignored — vertical scroll gesture');
             return;
         }
-        handleNav(touch.clientX, touch.clientY, 'touch');
+        handleNav(touch.clientX, 'touch');
         e.preventDefault();
     }, { passive: false });
 },
