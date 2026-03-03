@@ -242,6 +242,7 @@ window.openReader = function(url, title, author) {
                             if (tocList) tocList.innerHTML = toc.map(item => renderTocItem(item)).join('');
                         }
                     });
+                    activateImmersiveMode();
                     console.log("🚀 Reader.init terminé" + (savedCfi ? " — reprise à la page sauvegardée" : ""));
                 }).catch(err => {
                     console.error("❌ Erreur d'initialisation du Reader:", err);
@@ -261,6 +262,7 @@ window.openReader = function(url, title, author) {
 };
 
 window.closeReader = function() {
+    deactivateImmersiveMode();
     document.getElementById('ebook-grid').classList.remove('hidden');
     document.getElementById('reader-container').classList.add('hidden');
 
@@ -334,6 +336,55 @@ window.toggleHighlightMode = function() {
 const readerThemes = ['light', 'sepia', 'dark'];
 const themeEmojis = { light: '☀️', sepia: '📜', dark: '🌙' };
 let currentThemeIdx = 0;
+
+// --- IMMERSIVE MODE ---
+
+let _chromeHideTimer = null;
+
+window.showReaderChrome = function() {
+    const header = document.getElementById('reader-header');
+    const bottomBar = document.getElementById('reader-bottom-bar');
+    if (header) header.classList.remove('reader-chrome-hidden');
+    if (bottomBar) bottomBar.classList.remove('reader-chrome-hidden');
+    clearTimeout(_chromeHideTimer);
+    _chromeHideTimer = setTimeout(window.hideReaderChrome, 3000);
+};
+
+window.hideReaderChrome = function() {
+    const header = document.getElementById('reader-header');
+    const bottomBar = document.getElementById('reader-bottom-bar');
+    if (header) header.classList.add('reader-chrome-hidden');
+    if (bottomBar) bottomBar.classList.add('reader-chrome-hidden');
+};
+
+function activateImmersiveMode() {
+    document.body.classList.add('immersive-reading');
+    // Clear inline overlay dimensions so CSS inset-0 takes over in full-screen shell
+    const overlay = document.getElementById('reader-overlay');
+    if (overlay) {
+        overlay.style.top = '';
+        overlay.style.left = '';
+        overlay.style.width = '';
+        overlay.style.height = '';
+    }
+    // Clear inline shell height so CSS height:100% takes over
+    const readerShell = document.getElementById('reader-shell');
+    if (readerShell) readerShell.style.height = '';
+    // Resize epub.js to fill full screen, then show chrome briefly
+    requestAnimationFrame(() => {
+        if (window.Reader && window.Reader.rendition) window.Reader.rendition.resize();
+        window.showReaderChrome();
+    });
+}
+
+function deactivateImmersiveMode() {
+    document.body.classList.remove('immersive-reading');
+    clearTimeout(_chromeHideTimer);
+    const header = document.getElementById('reader-header');
+    const bottomBar = document.getElementById('reader-bottom-bar');
+    if (header) header.classList.remove('reader-chrome-hidden');
+    if (bottomBar) bottomBar.classList.remove('reader-chrome-hidden');
+}
 
 window.increaseFontSize = function() {
     if (!window.Reader || window.Reader.fontSize >= 24) return;
