@@ -370,11 +370,15 @@ function activateImmersiveMode() {
     // Clear inline shell height so CSS height:100% takes over
     const readerShell = document.getElementById('reader-shell');
     if (readerShell) readerShell.style.height = '';
-    // Resize epub.js to fill full screen, then show chrome briefly
-    requestAnimationFrame(() => {
-        if (window.Reader && window.Reader.rendition) window.Reader.rendition.resize();
-        window.showReaderChrome();
-    });
+    // Show chrome immediately — epub.js resize is handled by Reader.init's own 300ms
+    // timer which fires after this, using the now-full-screen shell dimensions.
+    // Show for 6s on first open so user can see the controls.
+    const header = document.getElementById('reader-header');
+    const bottomBar = document.getElementById('reader-bottom-bar');
+    if (header) header.classList.remove('reader-chrome-hidden');
+    if (bottomBar) bottomBar.classList.remove('reader-chrome-hidden');
+    clearTimeout(_chromeHideTimer);
+    _chromeHideTimer = setTimeout(window.hideReaderChrome, 6000);
 }
 
 function deactivateImmersiveMode() {
