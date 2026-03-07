@@ -49,13 +49,14 @@ const Reader = {
         // Desktop: epub.js selected event handles text selection automatically
 
         // Mobile: receive selected text posted from saveSelection() via iframe eval
-        window.addEventListener('message', (e) => {
+        this._messageListener = (e) => {
             if (!e.data || e.data.type !== 'epub-selection') return;
             const modalAlreadyOpen = !document.getElementById('highlight-modal')?.classList.contains('hidden');
             if (modalAlreadyOpen) return;
             const title = document.getElementById('reader-title')?.textContent || '';
             window.openHighlightModal(e.data.text, title);
-        });
+        };
+        window.addEventListener('message', this._messageListener);
 
         this.rendition.on("relocated", (location) => {
             this.updateProgress(location);
@@ -247,6 +248,10 @@ setupNavigation: function(containerId) {
         if (this._onWindowResize) {
             window.removeEventListener('resize', this._onWindowResize);
             this._onWindowResize = null;
+        }
+        if (this._messageListener) {
+            window.removeEventListener('message', this._messageListener);
+            this._messageListener = null;
         }
         clearTimeout(this._resizeTimer);
     }

@@ -15,6 +15,7 @@ window.rendition = null;
 let highlightModeActive = false;
 let allEbooks = [];
 window.currentBookAuthor = '';
+let _saveProgressTimer = null;
 
 // --- 2. NAVIGATION & UI ---
 
@@ -59,6 +60,14 @@ window.toggleAddEbookForm = function() {
 
 const isEpub = url => url && url.toLowerCase().endsWith('.epub');
 
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
 function renderEbookList(ebooks) {
     const grid = document.getElementById('ebook-grid');
     if (!grid) return;
@@ -70,26 +79,33 @@ function renderEbookList(ebooks) {
     grid.className = 'flex flex-col gap-3';
     grid.innerHTML = ebooks.map(book => {
         const epub = isEpub(book.file_url);
-        const safeTitle = book.title.replace(/'/g, "\\'");
         const authorName = book.authors?.name || '';
-        const safeAuthor = authorName.replace(/'/g, "\\'");
         return `
         <div class="group flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer"
-             onclick="openReader('${book.file_url}', '${safeTitle}', '${safeAuthor}')">
+             data-url="${escapeHtml(book.file_url)}"
+             data-title="${escapeHtml(book.title)}"
+             data-author="${escapeHtml(authorName)}">
             <div class="w-11 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${epub ? 'bg-indigo-50' : 'bg-rose-50'}">
                 <span class="text-2xl">${epub ? '📖' : '📄'}</span>
             </div>
             <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-0.5">
-                    ${book.category ? `<span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">${book.category}</span><span class="text-slate-200 text-xs">·</span>` : ''}
+                    ${book.category ? `<span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">${escapeHtml(book.category)}</span><span class="text-slate-200 text-xs">·</span>` : ''}
                     <span class="text-[10px] font-bold uppercase tracking-wider ${epub ? 'text-emerald-500' : 'text-rose-400'}">${epub ? 'EPUB' : 'PDF'}</span>
                 </div>
-                <h3 class="font-bold text-slate-800 truncate">${book.title}</h3>
-                <p class="text-sm text-slate-400 truncate">${authorName}</p>
+                <h3 class="font-bold text-slate-800 truncate">${escapeHtml(book.title)}</h3>
+                <p class="text-sm text-slate-400 truncate">${escapeHtml(authorName)}</p>
             </div>
             <span class="text-slate-300 group-hover:text-indigo-400 transition-colors text-lg flex-shrink-0">›</span>
         </div>`;
     }).join('');
+
+    // Single delegated listener — no inline onclick, no injection risk
+    grid.addEventListener('click', (e) => {
+        const card = e.target.closest('[data-url]');
+        if (!card) return;
+        openReader(card.dataset.url, card.dataset.title, card.dataset.author);
+    }, { once: true });
 }
 
 function stripAccents(s) {
@@ -216,7 +232,6 @@ window.openReader = function(url, title, author) {
                 Reader.init(data, "epub-viewer", savedCfi).then(() => {
                     window.rendition = Reader.rendition;
                     // Debounced save — writes to Supabase 2s after user stops turning pages
-                    let _saveProgressTimer = null;
                     window.rendition.on('relocated', (location) => {
                         if (location.start && location.start.cfi) {
                             clearTimeout(_saveProgressTimer);
@@ -261,6 +276,8 @@ window.openReader = function(url, title, author) {
 };
 
 window.closeReader = function() {
+    clearTimeout(_saveProgressTimer);
+    _saveProgressTimer = null;
     document.getElementById('ebook-grid').classList.remove('hidden');
     document.getElementById('reader-container').classList.add('hidden');
 
