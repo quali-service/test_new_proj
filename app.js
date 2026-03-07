@@ -476,6 +476,7 @@ window.closeHighlightModal = function() {
 };
 
 window.toggleVocabMode = function() {
+    console.log('[VOCAB] toggleVocabMode called');
     vocabModeActive = !vocabModeActive;
 
     // Mutual exclusion with highlight mode
@@ -796,6 +797,12 @@ window.createAuthor = async function(instanceId, name) {
 // --- 6. INITIALISATION ---
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Debug: log what element is touched anywhere on the page
+    document.addEventListener('touchstart', (e) => {
+        const el = e.target;
+        console.log('[TOUCH]', el.tagName, el.id || el.className.slice(0, 40));
+    }, { passive: true });
+
     document.addEventListener('click', (e) => {
         ['ebook', 'ressource'].forEach(id => {
             if (!e.target.closest(`#${id}-author-search-input`) && !e.target.closest(`#${id}-author-dropdown`)) {
