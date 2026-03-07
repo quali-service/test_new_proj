@@ -13,6 +13,7 @@ const HEADERS = {
 
 window.rendition = null;
 let highlightModeActive = false;
+let vocabModeActive = false;
 let allEbooks = [];
 window.currentBookAuthor = '';
 let _saveProgressTimer = null;
@@ -320,6 +321,7 @@ window.closeReader = function() {
 
     // Reset highlight mode
     highlightModeActive = false;
+    vocabModeActive = false;
     if (window.Reader) {
         window.Reader.setHighlightMode(false);
         window.Reader.destroy();
@@ -329,10 +331,26 @@ window.closeReader = function() {
         hlBtn.classList.remove('bg-amber-500', 'text-white');
         hlBtn.classList.add('bg-amber-100', 'text-amber-600');
     }
+    const vBtn = document.getElementById('vocab-mode-btn');
+    if (vBtn) {
+        vBtn.classList.remove('bg-blue-500', 'text-white');
+        vBtn.classList.add('bg-blue-100', 'text-blue-600');
+    }
 };
 
 window.toggleHighlightMode = function() {
     highlightModeActive = !highlightModeActive;
+
+    // Mutual exclusion with vocab mode
+    if (highlightModeActive && vocabModeActive) {
+        vocabModeActive = false;
+        const vBtn = document.getElementById('vocab-mode-btn');
+        if (vBtn) {
+            vBtn.classList.remove('bg-blue-500', 'text-white');
+            vBtn.classList.add('bg-blue-100', 'text-blue-600');
+        }
+    }
+
     if (window.Reader) window.Reader.setHighlightMode(highlightModeActive);
     const btn = document.getElementById('highlight-mode-btn');
     const saveBtn = document.getElementById('save-selection-btn');
@@ -377,15 +395,40 @@ window.cycleReaderTheme = function() {
 window.saveSelection = function() {
     if (!window.rendition) return;
     const contents = window.rendition.getContents();
+    const isVocab = vocabModeActive;
     contents.forEach(c => {
         if (c.window) {
             try {
-                c.window.eval(`(function() {
-                    var text = (window.getSelection() || '').toString().trim();
-                    if (text.length > 5) {
-                        window.parent.postMessage({ type: 'epub-selection', text: text }, '*');
-                    }
-                })()`);
+                if (isVocab) {
+                    c.window.eval(`(function() {
+                        var sel = window.getSelection();
+                        var text = sel ? sel.toString().trim() : '';
+                        if (text.length < 1) return;
+                        // Get surrounding sentence from parent element
+                        var range = sel.rangeCount ? sel.getRangeAt(0) : null;
+                        var node = range ? range.commonAncestorContainer : null;
+                        var parentEl = node ? (node.nodeType === 3 ? node.parentElement : node) : null;
+                        var fullText = parentEl ? (parentEl.textContent || '') : '';
+                        // Extract sentence containing the selection
+                        var idx = fullText.indexOf(text);
+                        var context = text;
+                        if (idx !== -1) {
+                            var start = fullText.lastIndexOf('.', idx - 1);
+                            start = start < 0 ? 0 : start + 2;
+                            var end = fullText.indexOf('.', idx + text.length);
+                            end = end < 0 ? fullText.length : end + 1;
+                            context = fullText.slice(start, end).trim();
+                        }
+                        window.parent.postMessage({ type: 'vocab-selection', text: text, context: context }, '*');
+                    })()`);
+                } else {
+                    c.window.eval(`(function() {
+                        var text = (window.getSelection() || '').toString().trim();
+                        if (text.length > 5) {
+                            window.parent.postMessage({ type: 'epub-selection', text: text }, '*');
+                        }
+                    })()`);
+                }
             } catch(e) {}
         }
     });
@@ -430,6 +473,97 @@ window.openHighlightModal = function(text, title) {
 window.closeHighlightModal = function() {
     document.getElementById('highlight-modal').classList.add('hidden');
     document.getElementById('highlight-form').reset();
+};
+
+window.toggleVocabMode = function() {
+    vocabModeActive = !vocabModeActive;
+
+    // Mutual exclusion with highlight mode
+    if (vocabModeActive && highlightModeActive) {
+        highlightModeActive = false;
+        const hlBtn = document.getElementById('highlight-mode-btn');
+        if (hlBtn) {
+            hlBtn.classList.remove('bg-amber-500', 'text-white');
+            hlBtn.classList.add('bg-amber-100', 'text-amber-600');
+        }
+    }
+
+    if (window.Reader) window.Reader.setHighlightMode(vocabModeActive);
+
+    const btn = document.getElementById('vocab-mode-btn');
+    const saveBtn = document.getElementById('save-selection-btn');
+    if (btn) {
+        if (vocabModeActive) {
+            btn.classList.remove('bg-blue-100', 'text-blue-600');
+            btn.classList.add('bg-blue-500', 'text-white');
+        } else {
+            btn.classList.remove('bg-blue-500', 'text-white');
+            btn.classList.add('bg-blue-100', 'text-blue-600');
+        }
+    }
+    if (saveBtn) saveBtn.classList.toggle('hidden', !vocabModeActive);
+};
+
+let _vocabSourceTitle = '';
+
+window.openVocabModal = function(word, context, title) {
+    _vocabSourceTitle = title || '';
+    document.getElementById('vocab-word').textContent = word;
+    document.getElementById('vocab-context').value = context || '';
+    document.getElementById('vocab-translation').value = '';
+    document.getElementById('vocab-loading').classList.remove('hidden');
+    document.getElementById('vocab-modal').classList.remove('hidden');
+
+    fetch(`${SUPABASE_URL}/functions/v1/translate`, {
+        method: 'POST',
+        headers: HEADERS,
+        body: JSON.stringify({ text: word })
+    })
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('vocab-translation').value = data.translation || '';
+    })
+    .catch(() => {
+        document.getElementById('vocab-translation').placeholder = 'Erreur de traduction';
+    })
+    .finally(() => {
+        document.getElementById('vocab-loading').classList.add('hidden');
+    });
+};
+
+window.closeVocabModal = function() {
+    document.getElementById('vocab-modal').classList.add('hidden');
+    document.getElementById('vocab-word').textContent = '';
+    document.getElementById('vocab-translation').value = '';
+    document.getElementById('vocab-context').value = '';
+};
+
+window.saveVocab = async function() {
+    const word = document.getElementById('vocab-word').textContent.trim();
+    const translation = document.getElementById('vocab-translation').value.trim();
+    const context = document.getElementById('vocab-context').value.trim();
+    const btn = document.getElementById('vocab-save-btn');
+
+    if (!word || !translation) return;
+
+    try {
+        btn.disabled = true;
+        btn.querySelector('span').textContent = 'Envoi... ⏳';
+
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/vocabulary`, {
+            method: 'POST',
+            headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+            body: JSON.stringify({ word, translation, context, source_title: _vocabSourceTitle })
+        });
+
+        if (!response.ok) throw new Error("Erreur lors de l'enregistrement");
+        window.closeVocabModal();
+    } catch (err) {
+        alert("Erreur : " + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.querySelector('span').textContent = 'Sauvegarder';
+    }
 };
 
 function handleKeyNav(e) {

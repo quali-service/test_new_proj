@@ -378,6 +378,9 @@
             <button id="highlight-mode-btn" onclick="toggleHighlightMode()"
                 title="Activer le mode surlignage"
                 class="p-2 bg-amber-100 text-amber-600 rounded-lg text-sm font-bold transition-all">✏️</button>
+            <button id="vocab-mode-btn" onclick="toggleVocabMode()"
+                title="Mode vocabulaire"
+                class="p-2 bg-blue-100 text-blue-600 rounded-lg text-sm font-bold transition-all">🔤</button>
             <button id="save-selection-btn" onclick="saveSelection()"
                 title="Enregistrer la sélection"
                 class="hidden p-2 bg-emerald-100 text-emerald-600 rounded-lg text-sm font-bold transition-all">💾</button>
@@ -428,6 +431,44 @@
             <button onclick="closeToc()" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">&times;</button>
         </div>
         <div id="toc-list" class="overflow-y-auto flex-1 px-2 py-2"></div>
+    </div>
+
+    <!-- Modal vocabulaire -->
+    <div id="vocab-modal" class="hidden fixed inset-0 z-[200] flex items-end justify-center p-4 bg-black/50"
+         onclick="if(event.target===this)closeVocabModal()">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 space-y-4 animate-slide-up">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold text-slate-800">Vocabulaire</h3>
+                <button onclick="closeVocabModal()" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">&times;</button>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Mot / Expression</label>
+                <div id="vocab-word" class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 font-medium min-h-[46px]"></div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">
+                    Traduction
+                    <span id="vocab-loading" class="text-slate-400 font-normal text-xs ml-1 hidden">⏳ en cours...</span>
+                </label>
+                <textarea id="vocab-translation" rows="2"
+                    class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition-all placeholder:text-slate-400"
+                    placeholder="Traduction..."></textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Phrase de contexte</label>
+                <textarea id="vocab-context" rows="3"
+                    class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition-all placeholder:text-slate-400"
+                    placeholder="Phrase originale..."></textarea>
+            </div>
+
+            <button id="vocab-save-btn" onclick="saveVocab()"
+                class="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-2">
+                <span>Sauvegarder</span>
+            </button>
+        </div>
     </div>
 
     <!-- Modal surlignage -->

@@ -50,11 +50,18 @@ const Reader = {
 
         // Mobile: receive selected text posted from saveSelection() via iframe eval
         this._messageListener = (e) => {
-            if (!e.data || e.data.type !== 'epub-selection') return;
-            const modalAlreadyOpen = !document.getElementById('highlight-modal')?.classList.contains('hidden');
-            if (modalAlreadyOpen) return;
+            if (!e.data) return;
             const title = document.getElementById('reader-title')?.textContent || '';
-            window.openHighlightModal(e.data.text, title);
+
+            if (e.data.type === 'epub-selection') {
+                const modalAlreadyOpen = !document.getElementById('highlight-modal')?.classList.contains('hidden');
+                if (modalAlreadyOpen) return;
+                window.openHighlightModal(e.data.text, title);
+            } else if (e.data.type === 'vocab-selection') {
+                const modalAlreadyOpen = !document.getElementById('vocab-modal')?.classList.contains('hidden');
+                if (modalAlreadyOpen) return;
+                window.openVocabModal(e.data.text, e.data.context, title);
+            }
         };
         window.addEventListener('message', this._messageListener);
 
@@ -74,11 +81,30 @@ const Reader = {
         };
         window.addEventListener('resize', this._onWindowResize);
 
-        // Écoute de la sélection de texte (mode surlignage)
+        // Écoute de la sélection de texte (mode surlignage ou vocabulaire)
         this.rendition.on('selected', (cfiRange, contents) => {
-            const text = contents.window.getSelection().toString().trim();
-            if (text.length > 5) {
-                const title = document.getElementById('reader-title')?.textContent || '';
+            const sel = contents.window.getSelection();
+            const text = sel ? sel.toString().trim() : '';
+            if (!text) return;
+            const title = document.getElementById('reader-title')?.textContent || '';
+
+            if (window.vocabModeActive) {
+                // Extract surrounding sentence from parent element
+                const range = sel.rangeCount ? sel.getRangeAt(0) : null;
+                const node = range ? range.commonAncestorContainer : null;
+                const parentEl = node ? (node.nodeType === 3 ? node.parentElement : node) : null;
+                const fullText = parentEl ? (parentEl.textContent || '') : '';
+                let context = text;
+                const idx = fullText.indexOf(text);
+                if (idx !== -1) {
+                    let start = fullText.lastIndexOf('.', idx - 1);
+                    start = start < 0 ? 0 : start + 2;
+                    let end = fullText.indexOf('.', idx + text.length);
+                    end = end < 0 ? fullText.length : end + 1;
+                    context = fullText.slice(start, end).trim();
+                }
+                window.openVocabModal(text, context, title);
+            } else if (text.length > 5) {
                 window.openHighlightModal(text, title);
             }
         });
