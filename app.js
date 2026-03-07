@@ -1,4 +1,4 @@
-console.log(" Le fichier app.js est bien chargé !");
+console.log("app.js v2026-03-07b chargé");
 window.JSZip = window.JSZip || undefined; // Force la visibilité globale
 
 // --- 1. CONFIGURATION SUPABASE ---
