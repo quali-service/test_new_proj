@@ -803,6 +803,17 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('[TOUCH]', el.tagName, el.id || el.className.slice(0, 40));
     }, { passive: true });
 
+    // Toolbar mode buttons: use touchend to bypass click suppression from overlay's preventDefault
+    ['highlight-mode-btn', 'vocab-mode-btn'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        btn.addEventListener('touchend', (e) => {
+            e.preventDefault(); // prevent the ghost click that would fire after
+            if (id === 'highlight-mode-btn') window.toggleHighlightMode();
+            else window.toggleVocabMode();
+        }, { passive: false });
+    });
+
     document.addEventListener('click', (e) => {
         ['ebook', 'ressource'].forEach(id => {
             if (!e.target.closest(`#${id}-author-search-input`) && !e.target.closest(`#${id}-author-dropdown`)) {
