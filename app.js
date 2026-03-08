@@ -14,7 +14,6 @@ const HEADERS = {
 window.rendition = null;
 let highlightModeActive = false;
 let vocabModeActive = false;
-window.vocabModeActive = false; // kept in sync so reader.js can read it
 let allEbooks = [];
 window.currentBookAuthor = '';
 let _saveProgressTimer = null;
@@ -323,7 +322,6 @@ window.closeReader = function() {
     // Reset highlight mode
     highlightModeActive = false;
     vocabModeActive = false;
-    window.vocabModeActive = false;
     if (window.Reader) {
         window.Reader.setHighlightMode(false);
         window.Reader.destroy();
@@ -346,7 +344,6 @@ window.toggleHighlightMode = function() {
     // Mutual exclusion with vocab mode
     if (highlightModeActive && vocabModeActive) {
         vocabModeActive = false;
-        window.vocabModeActive = false;
         const vBtn = document.getElementById('vocab-mode-btn');
         if (vBtn) {
             vBtn.classList.remove('bg-blue-500', 'text-white');
@@ -479,9 +476,7 @@ window.closeHighlightModal = function() {
 };
 
 window.toggleVocabMode = function() {
-    console.log('[VOCAB] toggleVocabMode called');
     vocabModeActive = !vocabModeActive;
-    window.vocabModeActive = vocabModeActive;
 
     // Mutual exclusion with highlight mode
     if (vocabModeActive && highlightModeActive) {
@@ -801,23 +796,6 @@ window.createAuthor = async function(instanceId, name) {
 // --- 6. INITIALISATION ---
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Debug: log what element is touched anywhere on the page
-    document.addEventListener('touchstart', (e) => {
-        const el = e.target;
-        console.log('[TOUCH]', el.tagName, el.id || el.className.slice(0, 40));
-    }, { passive: true });
-
-    // Toolbar mode buttons: use touchend to bypass click suppression from overlay's preventDefault
-    ['highlight-mode-btn', 'vocab-mode-btn'].forEach(id => {
-        const btn = document.getElementById(id);
-        if (!btn) return;
-        btn.addEventListener('touchend', (e) => {
-            e.preventDefault(); // prevent the ghost click that would fire after
-            if (id === 'highlight-mode-btn') window.toggleHighlightMode();
-            else window.toggleVocabMode();
-        }, { passive: false });
-    });
-
     document.addEventListener('click', (e) => {
         ['ebook', 'ressource'].forEach(id => {
             if (!e.target.closest(`#${id}-author-search-input`) && !e.target.closest(`#${id}-author-dropdown`)) {
