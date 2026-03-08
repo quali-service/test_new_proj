@@ -14,6 +14,7 @@ const HEADERS = {
 window.rendition = null;
 let highlightModeActive = false;
 let vocabModeActive = false;
+window.vocabModeActive = false; // kept in sync so reader.js can read it
 let allEbooks = [];
 window.currentBookAuthor = '';
 let _saveProgressTimer = null;
@@ -322,6 +323,7 @@ window.closeReader = function() {
     // Reset highlight mode
     highlightModeActive = false;
     vocabModeActive = false;
+    window.vocabModeActive = false;
     if (window.Reader) {
         window.Reader.setHighlightMode(false);
         window.Reader.destroy();
@@ -344,6 +346,7 @@ window.toggleHighlightMode = function() {
     // Mutual exclusion with vocab mode
     if (highlightModeActive && vocabModeActive) {
         vocabModeActive = false;
+        window.vocabModeActive = false;
         const vBtn = document.getElementById('vocab-mode-btn');
         if (vBtn) {
             vBtn.classList.remove('bg-blue-500', 'text-white');
@@ -478,6 +481,7 @@ window.closeHighlightModal = function() {
 window.toggleVocabMode = function() {
     console.log('[VOCAB] toggleVocabMode called');
     vocabModeActive = !vocabModeActive;
+    window.vocabModeActive = vocabModeActive;
 
     // Mutual exclusion with highlight mode
     if (vocabModeActive && highlightModeActive) {
