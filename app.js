@@ -106,7 +106,7 @@ function renderEbookList(ebooks) {
         const card = e.target.closest('[data-url]');
         if (!card) return;
         openReader(card.dataset.url, card.dataset.title, card.dataset.author);
-    }, { once: true });
+    });
 }
 
 function stripAccents(s) {
