@@ -220,6 +220,7 @@ setupNavigation: function(containerId) {
         const t = themes[this.currentTheme] || themes.light;
 
         this.rendition.themes.default({
+            "@page": { "margin": "0 !important" },
             "body": {
                 "font-family": "'Lora', 'Georgia', 'Palatino Linotype', serif !important",
                 "font-size": this.fontSize + "px !important",
