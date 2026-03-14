@@ -947,19 +947,76 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Swipe left on quiz wrappers to load next question
+    // Animated swipe left on quiz wrappers to load next question
     function addQuizSwipe(elementId, onSwipeLeft) {
-        const el = document.getElementById(elementId);
-        if (!el) return;
-        let startX = 0, startY = 0;
-        el.addEventListener('touchstart', (e) => {
+        const wrapper = document.getElementById(elementId);
+        if (!wrapper) return;
+        const card = wrapper.querySelector('.glass-card');
+        if (!card) return;
+
+        let startX = 0, startY = 0, dragging = false, locked = false;
+
+        wrapper.addEventListener('touchstart', (e) => {
+            if (locked) return;
             startX = e.touches[0].clientX;
             startY = e.touches[0].clientY;
+            dragging = true;
+            card.style.transition = 'none';
+            card.style.willChange = 'transform, opacity';
         }, { passive: true });
-        el.addEventListener('touchend', (e) => {
+
+        wrapper.addEventListener('touchmove', (e) => {
+            if (!dragging || locked) return;
+            const dx = e.touches[0].clientX - startX;
+            const dy = e.touches[0].clientY - startY;
+            if (Math.abs(dy) > Math.abs(dx) + 10) { dragging = false; return; } // vertical scroll
+            if (dx >= 0) return; // left swipe only
+            const pull = Math.min(Math.abs(dx), 280);
+            const rotate = -(pull * 0.04);
+            const fade = 1 - (pull / 280) * 0.45;
+            card.style.transform = `translateX(${dx}px) rotate(${rotate}deg)`;
+            card.style.opacity = fade;
+        }, { passive: true });
+
+        wrapper.addEventListener('touchend', (e) => {
+            if (!dragging || locked) return;
+            dragging = false;
             const dx = e.changedTouches[0].clientX - startX;
             const dy = Math.abs(e.changedTouches[0].clientY - startY);
-            if (dx < -60 && dy < 80) onSwipeLeft();
+
+            if (dx < -70 && dy < 80) {
+                // Confirmed swipe — fly card off screen left
+                locked = true;
+                card.style.transition = 'transform 0.32s cubic-bezier(0.4, 0, 0.8, 0.6), opacity 0.28s ease';
+                card.style.transform = 'translateX(-115%) rotate(-10deg)';
+                card.style.opacity = '0';
+
+                setTimeout(() => {
+                    // Reset without transition, position card off-screen right
+                    card.style.transition = 'none';
+                    card.style.transform = 'translateX(60px)';
+                    card.style.opacity = '0';
+                    card.style.willChange = '';
+
+                    onSwipeLeft(); // load new question content
+
+                    // Slide in from right on next frame
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            card.style.transition = 'transform 0.38s cubic-bezier(0.2, 0, 0, 1), opacity 0.3s ease';
+                            card.style.transform = 'translateX(0)';
+                            card.style.opacity = '1';
+                            setTimeout(() => { locked = false; }, 400);
+                        });
+                    });
+                }, 320);
+            } else {
+                // Not enough — spring back
+                card.style.transition = 'transform 0.45s cubic-bezier(0.2, 0, 0, 1), opacity 0.3s ease';
+                card.style.transform = 'translateX(0)';
+                card.style.opacity = '1';
+                card.style.willChange = '';
+            }
         }, { passive: true });
     }
     addQuizSwipe('ressources-quiz-wrapper', () => window.loadQuestion());
