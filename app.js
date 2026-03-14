@@ -515,11 +515,15 @@ window.openVocabModal = function(word, context, title) {
         headers: HEADERS,
         body: JSON.stringify({ text: word })
     })
-    .then(r => r.json())
+    .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+    })
     .then(data => {
         document.getElementById('vocab-translation').value = data.translation || '';
     })
-    .catch(() => {
+    .catch((err) => {
+        console.error('[translate] error:', err);
         document.getElementById('vocab-translation').placeholder = 'Erreur de traduction';
     })
     .finally(() => {
