@@ -228,7 +228,7 @@ setupNavigation: function(containerId) {
                 "user-select": "text !important",
                 "-webkit-touch-callout": "default !important"
             },
-            "p": { "margin-bottom": "1.3em !important", "text-align": "justify !important" },
+            "p": { "margin-bottom": "1.3em !important", "text-align": "justify !important", "font-style": "normal !important" },
             "h1, h2, h3": { "line-height": "1.4 !important", "margin-bottom": "0.8em !important" }
         });
 
