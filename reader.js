@@ -219,6 +219,7 @@ setupNavigation: function(containerId) {
             "body": {
                 "font-family": "'Comic Sans MS', 'Comic Sans', cursive !important",
                 "font-size": this.fontSize + "px !important",
+                "font-style": "normal !important",
                 "padding": "24px 24px !important",
                 "line-height": "1.5 !important",
                 "color": t.color + " !important",
