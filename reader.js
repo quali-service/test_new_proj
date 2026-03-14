@@ -3,7 +3,7 @@ const Reader = {
     book: null,
     rendition: null,
     isReady: false,
-    fontSize: 16,
+    fontSize: 18,
     currentTheme: 'light',
 
     init: function(data, containerId, startCfi) {
@@ -217,18 +217,17 @@ setupNavigation: function(containerId) {
         this.rendition.themes.default({
             "@page": { "margin": "0 !important" },
             "body": {
-                "font-family": "'Comic Sans MS', 'Comic Sans', cursive !important",
+                "font-family": "'Lora', 'Georgia', 'Palatino Linotype', serif !important",
                 "font-size": this.fontSize + "px !important",
-                "font-style": "normal !important",
-                "padding": "24px 24px !important",
-                "line-height": "1.5 !important",
+                "padding": "28px 24px !important",
+                "line-height": "1.85 !important",
                 "color": t.color + " !important",
                 "background": t.bg + " !important",
                 "-webkit-user-select": "text !important",
                 "user-select": "text !important",
                 "-webkit-touch-callout": "default !important"
             },
-            "p": { "margin-bottom": "1.3em !important", "text-align": "justify !important", "font-style": "normal !important" },
+            "p": { "margin-bottom": "1.3em !important", "text-align": "justify !important" },
             "h1, h2, h3": { "line-height": "1.4 !important", "margin-bottom": "0.8em !important" }
         });
 
