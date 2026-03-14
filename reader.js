@@ -7,9 +7,10 @@ const Reader = {
     currentTheme: 'light',
 
     init: function(data, containerId, startCfi) {
+        this.isReady = false;
         console.group("🛠️ Diagnostic Initialisation");
         console.log("1. Démarrage du moteur Epub.js...");
-        
+
         this.book = ePub(data);
 
         // Measure the actual pixel dimensions so epub.js can't miscalculate spread
@@ -134,15 +135,9 @@ setupNavigation: function(containerId) {
     const container = document.getElementById(containerId);
     const overlay = document.getElementById('reader-overlay');
 
-    // On rend l'overlay visible et on le plaque sur le viewer
+    // Show the overlay — CSS absolute inset-0 already positions it over the viewer
     if (overlay) {
-        overlay.style.display = 'block';
-        // On s'assure qu'il a la même taille que le viewer
-        const rect = container.getBoundingClientRect();
-        overlay.style.top = rect.top + 'px';
-        overlay.style.left = rect.left + 'px';
-        overlay.style.width = rect.width + 'px';
-        overlay.style.height = rect.height + 'px';
+        overlay.classList.remove('hidden');
     }
 
     let _lastNav = 0;
@@ -281,6 +276,9 @@ setupNavigation: function(containerId) {
             this._messageListener = null;
         }
         clearTimeout(this._resizeTimer);
+        if (this.rendition) { this.rendition.destroy(); this.rendition = null; }
+        if (this.book) { this.book.destroy(); this.book = null; }
+        this.isReady = false;
     }
 };
 

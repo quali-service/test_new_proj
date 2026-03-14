@@ -100,13 +100,6 @@ function renderEbookList(ebooks) {
             <span class="text-slate-300 group-hover:text-indigo-400 transition-colors text-lg flex-shrink-0">›</span>
         </div>`;
     }).join('');
-
-    // Single delegated listener — no inline onclick, no injection risk
-    grid.addEventListener('click', (e) => {
-        const card = e.target.closest('[data-url]');
-        if (!card) return;
-        openReader(card.dataset.url, card.dataset.title, card.dataset.author);
-    });
 }
 
 function stripAccents(s) {
@@ -322,6 +315,7 @@ window.closeReader = function() {
     // Reset highlight mode
     highlightModeActive = false;
     vocabModeActive = false;
+    window.vocabModeActive = false;
     if (window.Reader) {
         window.Reader.setHighlightMode(false);
         window.Reader.destroy();
@@ -344,6 +338,7 @@ window.toggleHighlightMode = function() {
     // Mutual exclusion with vocab mode
     if (highlightModeActive && vocabModeActive) {
         vocabModeActive = false;
+        window.vocabModeActive = false;
         const vBtn = document.getElementById('vocab-mode-btn');
         if (vBtn) {
             vBtn.classList.remove('bg-blue-500', 'text-white');
@@ -477,6 +472,7 @@ window.closeHighlightModal = function() {
 
 window.toggleVocabMode = function() {
     vocabModeActive = !vocabModeActive;
+    window.vocabModeActive = vocabModeActive;
 
     // Mutual exclusion with highlight mode
     if (vocabModeActive && highlightModeActive) {
@@ -796,6 +792,16 @@ window.createAuthor = async function(instanceId, name) {
 // --- 6. INITIALISATION ---
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Single delegated listener for book grid — set up once, never duplicated
+    const ebookGrid = document.getElementById('ebook-grid');
+    if (ebookGrid) {
+        ebookGrid.addEventListener('click', (e) => {
+            const card = e.target.closest('[data-url]');
+            if (!card) return;
+            openReader(card.dataset.url, card.dataset.title, card.dataset.author);
+        });
+    }
+
     document.addEventListener('click', (e) => {
         ['ebook', 'ressource'].forEach(id => {
             if (!e.target.closest(`#${id}-author-search-input`) && !e.target.closest(`#${id}-author-dropdown`)) {
