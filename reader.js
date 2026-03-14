@@ -166,18 +166,16 @@ setupNavigation: function(containerId) {
         }
     };
 
-    // On écoute sur la VITRE, pas sur l'iframe
-    overlay.addEventListener('click', (e) => {
+    // Store references so destroy() can remove them
+    this._navClick = (e) => {
         console.log('[NAV] 🖱️ click event fired');
         handleNav(e.clientX, 'click');
-    });
-
-    overlay.addEventListener('touchstart', (e) => {
+    };
+    this._navTouchStart = (e) => {
         _touchStartX = e.touches[0].clientX;
         _touchStartY = e.touches[0].clientY;
-    }, { passive: true });
-
-    overlay.addEventListener('touchend', (e) => {
+    };
+    this._navTouchEnd = (e) => {
         const touch = e.changedTouches[0];
         const deltaX = Math.abs(touch.clientX - _touchStartX);
         const deltaY = Math.abs(touch.clientY - _touchStartY);
@@ -188,7 +186,11 @@ setupNavigation: function(containerId) {
         }
         handleNav(touch.clientX, 'touch');
         e.preventDefault();
-    }, { passive: false });
+    };
+
+    overlay.addEventListener('click', this._navClick);
+    overlay.addEventListener('touchstart', this._navTouchStart, { passive: true });
+    overlay.addEventListener('touchend', this._navTouchEnd, { passive: false });
 },
 
     updateProgress: function(location) {
@@ -276,6 +278,15 @@ setupNavigation: function(containerId) {
             this._messageListener = null;
         }
         clearTimeout(this._resizeTimer);
+        const overlay = document.getElementById('reader-overlay');
+        if (overlay) {
+            if (this._navClick) overlay.removeEventListener('click', this._navClick);
+            if (this._navTouchStart) overlay.removeEventListener('touchstart', this._navTouchStart);
+            if (this._navTouchEnd) overlay.removeEventListener('touchend', this._navTouchEnd);
+        }
+        this._navClick = null;
+        this._navTouchStart = null;
+        this._navTouchEnd = null;
         if (this.rendition) { this.rendition.destroy(); this.rendition = null; }
         if (this.book) { this.book.destroy(); this.book = null; }
         this.isReady = false;
