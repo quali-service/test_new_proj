@@ -576,6 +576,147 @@ function handleKeyNav(e) {
 let lastQuestionId = null;
 let quizAuthorFilter = null; // null = all
 
+// --- 4b. QUIZ VOCABULAIRE ---
+
+let lastVocabId = null;
+let vocabQuizSourceFilter = null;
+let _vocabSourcesLoaded = false;
+
+window.switchQuizTab = function(tab) {
+    const isVocab = tab === 'vocabulaire';
+    document.getElementById('ressources-quiz-wrapper').classList.toggle('hidden', isVocab);
+    document.getElementById('vocab-quiz-wrapper').classList.toggle('hidden', !isVocab);
+    const activeClass = 'flex-1 py-2.5 rounded-2xl text-sm font-bold transition-all bg-indigo-600 text-white shadow-sm';
+    const inactiveClass = 'flex-1 py-2.5 rounded-2xl text-sm font-bold transition-all bg-slate-100 text-slate-500 hover:bg-slate-200';
+    document.getElementById('tab-ressources').className = isVocab ? inactiveClass : activeClass;
+    document.getElementById('tab-vocabulaire').className = isVocab ? activeClass : inactiveClass;
+    if (isVocab) {
+        if (!_vocabSourcesLoaded) loadVocabSources();
+        loadVocabQuestion();
+    }
+};
+
+async function loadVocabSources() {
+    _vocabSourcesLoaded = true;
+    const container = document.getElementById('vocab-source-filters');
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/vocabulary?select=source_title`, { headers: HEADERS });
+        const rows = await res.json();
+        const titles = [...new Set((rows || []).map(r => r.source_title).filter(Boolean))].sort();
+        if (!titles.length) return;
+        container.insertAdjacentHTML('beforeend', titles.map(t => `
+            <button onclick="setVocabSourceFilter('${t.replace(/'/g, "\\'")}', this)"
+                class="vocab-source-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-white text-slate-500 border border-slate-200 hover:border-indigo-300">
+                ${t}
+            </button>`).join(''));
+    } catch(e) {}
+}
+
+window.setVocabSourceFilter = function(title, btn) {
+    vocabQuizSourceFilter = title;
+    document.querySelectorAll('.vocab-source-chip').forEach(c => {
+        c.classList.remove('bg-indigo-600', 'text-white', 'shadow-sm');
+        c.classList.add('bg-white', 'text-slate-500', 'border', 'border-slate-200');
+    });
+    btn.classList.remove('bg-white', 'text-slate-500', 'border', 'border-slate-200');
+    btn.classList.add('bg-indigo-600', 'text-white', 'shadow-sm');
+    loadVocabQuestion();
+};
+
+window.loadVocabQuestion = async function() {
+    const loading = document.getElementById('vocab-quiz-loading');
+    const content = document.getElementById('vocab-quiz-content');
+    const empty   = document.getElementById('vocab-quiz-empty');
+    const result  = document.getElementById('vocab-result');
+    const submit  = document.getElementById('vocab-submit-btn');
+
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    empty.classList.add('hidden');
+    if (result) result.classList.add('hidden');
+    if (submit) { submit.classList.remove('hidden'); submit.disabled = false; }
+
+    try {
+        const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/vocabulary?select=id,word,translation,context,source_title`,
+            { headers: HEADERS }
+        );
+        const all = await res.json() || [];
+
+        const pool = vocabQuizSourceFilter
+            ? all.filter(v => v.source_title === vocabQuizSourceFilter)
+            : all;
+
+        if (pool.length < 1 || all.length < 4) {
+            loading.classList.add('hidden');
+            empty.classList.remove('hidden');
+            return;
+        }
+
+        let entry;
+        if (pool.length > 1) {
+            do { entry = pool[Math.floor(Math.random() * pool.length)]; }
+            while (entry.id === lastVocabId);
+        } else {
+            entry = pool[0];
+        }
+        lastVocabId = entry.id;
+
+        const distractors = all
+            .filter(v => v.id !== entry.id)
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 3)
+            .map(v => v.translation);
+
+        renderVocabQuiz(entry, distractors);
+    } catch(e) {
+        loading.innerHTML = `<p class="text-rose-500 font-bold p-8 text-center">Erreur de connexion</p>`;
+    }
+};
+
+function renderVocabQuiz(entry, distractors) {
+    document.getElementById('vocab-quiz-loading').classList.add('hidden');
+    document.getElementById('vocab-quiz-content').classList.remove('hidden');
+    document.getElementById('vocab-question-word').textContent = entry.word;
+
+    const options = [entry.translation, ...distractors].sort(() => Math.random() - 0.5);
+    const correctIdx = options.indexOf(entry.translation);
+
+    const container = document.getElementById('vocab-options-container');
+    container.innerHTML = '';
+    options.forEach((text, i) => {
+        const label = document.createElement('label');
+        label.className = "flex items-center p-4 border-2 border-slate-100 rounded-2xl cursor-pointer hover:border-blue-100 hover:bg-blue-50/30 transition-all group relative";
+        label.innerHTML = `
+            <input type="radio" name="vocab-answer" value="${i}" class="absolute opacity-0 w-0 h-0 peer" required>
+            <div class="w-5 h-5 border-2 border-slate-300 rounded-full flex items-center justify-center peer-checked:border-blue-500 peer-checked:bg-blue-500 transition-all mr-4">
+                <div class="w-1.5 h-1.5 bg-white rounded-full scale-0 peer-checked:scale-100 transition-transform"></div>
+            </div>
+            <span class="text-slate-700 font-medium text-sm group-hover:text-blue-900">${text}</span>
+        `;
+        container.appendChild(label);
+    });
+
+    document.getElementById('vocab-quiz-form').onsubmit = (e) => {
+        e.preventDefault();
+        const userAns = parseInt(new FormData(e.target).get('vocab-answer'));
+        displayVocabResult(userAns === correctIdx, entry);
+    };
+}
+
+function displayVocabResult(isCorrect, entry) {
+    const resDiv = document.getElementById('vocab-result');
+    resDiv.classList.remove('hidden');
+    resDiv.className = `mt-8 p-6 rounded-2xl animate-reveal border-2 ${isCorrect ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`;
+    document.getElementById('vocab-result-icon').textContent = isCorrect ? '✨' : '🧐';
+    document.getElementById('vocab-result-text').textContent = isCorrect ? 'Bravo !' : 'Presque...';
+    document.getElementById('vocab-correct-answer').textContent = `→ ${entry.translation}`;
+    document.getElementById('vocab-context-text').textContent = entry.context || '';
+    document.getElementById('vocab-source-text').textContent = entry.source_title ? `— ${entry.source_title}` : '';
+    document.getElementById('vocab-submit-btn').classList.add('hidden');
+    if (isCorrect && typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+}
+
 window.setQuizAuthorFilter = function(authorId, btn) {
     quizAuthorFilter = authorId;
     document.querySelectorAll('.quiz-author-chip').forEach(c => {
