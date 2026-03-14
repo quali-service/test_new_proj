@@ -3,7 +3,7 @@ const Reader = {
     book: null,
     rendition: null,
     isReady: false,
-    fontSize: 18,
+    fontSize: 16,
     currentTheme: 'light',
 
     init: function(data, containerId, startCfi) {
@@ -217,10 +217,10 @@ setupNavigation: function(containerId) {
         this.rendition.themes.default({
             "@page": { "margin": "0 !important" },
             "body": {
-                "font-family": "'Lora', 'Georgia', 'Palatino Linotype', serif !important",
+                "font-family": "'Comic Sans MS', 'Comic Sans', cursive !important",
                 "font-size": this.fontSize + "px !important",
-                "padding": "28px 24px !important",
-                "line-height": "1.85 !important",
+                "padding": "24px 24px !important",
+                "line-height": "1.5 !important",
                 "color": t.color + " !important",
                 "background": t.bg + " !important",
                 "-webkit-user-select": "text !important",

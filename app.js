@@ -366,14 +366,14 @@ const themeEmojis = { light: '☀️', sepia: '📜', dark: '🌙' };
 let currentThemeIdx = 0;
 
 window.increaseFontSize = function() {
-    if (!window.Reader || window.Reader.fontSize >= 24) return;
-    window.Reader.fontSize++;
+    if (!window.Reader || window.Reader.fontSize >= 32) return;
+    window.Reader.fontSize += 8;
     window.Reader.applyTheme();
 };
 
 window.decreaseFontSize = function() {
-    if (!window.Reader || window.Reader.fontSize <= 13) return;
-    window.Reader.fontSize--;
+    if (!window.Reader || window.Reader.fontSize <= 8) return;
+    window.Reader.fontSize -= 8;
     window.Reader.applyTheme();
 };
 
