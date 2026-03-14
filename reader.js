@@ -217,7 +217,7 @@ setupNavigation: function(containerId) {
         this.rendition.themes.default({
             "@page": { "margin": "0 !important" },
             "body": {
-                "font-family": "'Inter', sans-serif !important",
+                "font-family": "'Lora', 'Georgia', 'Palatino Linotype', serif !important",
                 "font-size": this.fontSize + "px !important",
                 "padding": "28px 24px !important",
                 "line-height": "1.85 !important",
