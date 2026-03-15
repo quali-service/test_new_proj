@@ -1,4 +1,3 @@
-console.log("app.js v2026-03-07b chargé");
 window.JSZip = window.JSZip || undefined; // Force la visibilité globale
 
 // --- 1. CONFIGURATION SUPABASE ---
@@ -221,7 +220,7 @@ window.openReader = function(url, title, author) {
                     );
                     const progressData = await progressRes.json();
                     savedCfi = progressData?.[0]?.cfi || null;
-                } catch(e) {}
+                } catch(e) { console.error('[progress] Failed to restore position:', e); }
 
                 Reader.init(data, "epub-viewer", savedCfi).then(() => {
                     window.rendition = Reader.rendition;
@@ -424,7 +423,7 @@ window.saveSelection = function() {
                         }
                     })()`);
                 }
-            } catch(e) {}
+            } catch(e) { console.error('[saveSelection] eval error:', e); }
         }
     });
 };
@@ -609,7 +608,7 @@ async function loadVocabSources() {
                 class="vocab-source-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-white text-slate-500 border border-slate-200 hover:border-indigo-300">
                 ${t}
             </button>`).join(''));
-    } catch(e) {}
+    } catch(e) { console.error('[loadVocabSources]', e); }
 }
 
 window.setVocabSourceFilter = function(title, btn) {
@@ -738,10 +737,10 @@ async function loadQuizAuthors() {
         const chips = authors.map(a => `
             <button onclick="setQuizAuthorFilter(${a.id}, this)"
                 class="quiz-author-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-white text-slate-500 border border-slate-200 hover:border-indigo-300">
-                ${a.name}
+                ${escapeHtml(a.name)}
             </button>`).join('');
         container.insertAdjacentHTML('beforeend', chips);
-    } catch(e) {}
+    } catch(e) { console.error('[loadQuizAuthors]', e); }
 }
 
 window.loadQuestion = async function() {
@@ -853,7 +852,7 @@ async function loadRelatedResources(questionText) {
     container.classList.remove('hidden');
 
     try {
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/search-resources-`, {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/search-resources`, {
             method: 'POST',
             headers: { ...HEADERS, 'Content-Type': 'application/json' },
             body: JSON.stringify({ query: questionText, match_count: 3 })
@@ -881,6 +880,7 @@ async function loadRelatedResources(questionText) {
             </div>`;
     } catch(e) {
         container.classList.add('hidden');
+        console.error('[loadRelatedResources]', e);
     }
 }
 
@@ -905,7 +905,7 @@ window.searchAuthors = async function(instanceId, query) {
             const authors = await res.json();
             let html = (authors || []).map(a =>
                 `<button type="button" onclick="selectAuthor('${instanceId}', ${a.id}, '${a.name.replace(/'/g, "\\'")}')"
-                    class="w-full text-left px-4 py-2.5 hover:bg-indigo-50 text-slate-700 text-sm border-b border-slate-100 last:border-0 transition-colors">${a.name}</button>`
+                    class="w-full text-left px-4 py-2.5 hover:bg-indigo-50 text-slate-700 text-sm border-b border-slate-100 last:border-0 transition-colors">${escapeHtml(a.name)}</button>`
             ).join('');
             html += `<button type="button" onclick="createAuthor('${instanceId}', '${query.trim().replace(/'/g, "\\'")}')"
                 class="w-full text-left px-4 py-2.5 hover:bg-emerald-50 text-emerald-600 text-sm font-semibold transition-colors">➕ Créer "${query.trim()}"</button>`;

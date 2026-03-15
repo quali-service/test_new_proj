@@ -21,8 +21,12 @@ Deno.serve(async (req: Request) => {
             });
         }
 
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 25000);
+
         const res = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
+            signal: controller.signal,
             headers: {
                 "Authorization": `Bearer ${Deno.env.get("OPENAI_API_KEY")}`,
                 "Content-Type": "application/json",
@@ -40,10 +44,12 @@ Deno.serve(async (req: Request) => {
                 max_tokens: 200,
             }),
         });
+        clearTimeout(timeout);
 
         if (!res.ok) throw new Error(`OpenAI error: ${res.status} ${await res.text()}`);
         const data = await res.json();
-        const translation = data.choices[0].message.content.trim();
+        const translation = data.choices?.[0]?.message?.content?.trim();
+        if (!translation) throw new Error("Empty response from OpenAI");
 
         return new Response(JSON.stringify({ translation }), {
             headers: { ...CORS, "Content-Type": "application/json" },

@@ -10,17 +10,23 @@ const CORS = {
 };
 
 async function getEmbedding(text: string): Promise<number[]> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000);
     const res = await fetch("https://api.openai.com/v1/embeddings", {
         method: "POST",
+        signal: controller.signal,
         headers: {
             "Authorization": `Bearer ${Deno.env.get("OPENAI_API_KEY")}`,
             "Content-Type": "application/json",
         },
         body: JSON.stringify({ model: "text-embedding-3-small", input: text }),
     });
+    clearTimeout(timeout);
     if (!res.ok) throw new Error(`OpenAI error: ${res.status} ${await res.text()}`);
     const data = await res.json();
-    return data.data[0].embedding;
+    const embedding = data.data?.[0]?.embedding;
+    if (!embedding) throw new Error("Empty embedding from OpenAI");
+    return embedding;
 }
 
 Deno.serve(async (req: Request) => {

@@ -8,8 +8,6 @@ const Reader = {
 
     init: function(data, containerId, startCfi) {
         this.isReady = false;
-        console.group("🛠️ Diagnostic Initialisation");
-        console.log("1. Démarrage du moteur Epub.js...");
 
         this.book = ePub(data);
 
@@ -34,16 +32,14 @@ const Reader = {
 
         // Surveillance du chargement global
         this.book.ready.then(() => {
-            console.log("2. ✅ Structure du livre chargée");
             return this.book.locations.generate(1000);
         }).then(() => {
             this.isReady = true;
-            console.log("3. ✅ Pagination calculée.");
-            console.groupEnd();
+        }).catch((err) => {
+            console.error('[Reader] Book ready/locations error:', err);
         });
 
-        this.rendition.on("rendered", (section) => {
-            console.log(`🖼️ Chapitre chargé : ${section.href}`);
+        this.rendition.on("rendered", () => {
             this.applyTheme();
         });
 
@@ -112,23 +108,19 @@ const Reader = {
 
         // Affichage et ajustement final au format iPhone
         return this.rendition.display(startCfi || undefined).then(() => {
-    // On augmente légèrement le délai pour attendre la fin de l'animation CSS
-    setTimeout(() => {
-        if (this.rendition) {
-            // 1. On force le calcul de la taille réelle du parent
-            this.rendition.resize();
-            
-            // 2. On s'assure que l'overlay couvre bien la nouvelle taille
-            const overlay = document.getElementById('reader-overlay');
-            if (overlay) {
-                overlay.classList.remove('hidden');
-                overlay.style.display = 'block';
-            }
-            
-            console.log("📏 Ajustement final effectué après animation");
-        }
-    }, 300); // 300ms est le "sweet spot" pour les animations mobiles
-});
+            setTimeout(() => {
+                if (this.rendition) {
+                    this.rendition.resize();
+                    const overlay = document.getElementById('reader-overlay');
+                    if (overlay) {
+                        overlay.classList.remove('hidden');
+                        overlay.style.display = 'block';
+                    }
+                }
+            }, 300);
+        }).catch((err) => {
+            console.error('[Reader] display() failed:', err);
+        });
     },
 
 setupNavigation: function(containerId) {
@@ -141,16 +133,12 @@ setupNavigation: function(containerId) {
     }
 
     let _lastNav = 0;
-    let _touchStartX = 0;
     let _touchStartY = 0;
 
-    const handleNav = (clientX, source) => {
+    const handleNav = (clientX) => {
         const now = Date.now();
         const elapsed = now - _lastNav;
-        if (elapsed < 400) {
-            console.log(`[NAV] 🚫 Blocked (${source}) — only ${elapsed}ms since last nav`);
-            return;
-        }
+        if (elapsed < 400) return;
         _lastNav = now;
 
         const width = container.offsetWidth;
@@ -158,33 +146,24 @@ setupNavigation: function(containerId) {
         const xRelatif = clientX - rect.left;
 
         if (xRelatif < width * 0.3) {
-            console.log(`[NAV] ⬅️ prev (${source}, x=${Math.round(xRelatif)}px)`);
             this.prev();
         } else {
-            console.log(`[NAV] ➡️ next (${source}, x=${Math.round(xRelatif)}px)`);
             this.next();
         }
     };
 
     // Store references so destroy() can remove them
     this._navClick = (e) => {
-        console.log('[NAV] 🖱️ click event fired');
-        handleNav(e.clientX, 'click');
+        handleNav(e.clientX);
     };
     this._navTouchStart = (e) => {
-        _touchStartX = e.touches[0].clientX;
         _touchStartY = e.touches[0].clientY;
     };
     this._navTouchEnd = (e) => {
         const touch = e.changedTouches[0];
-        const deltaX = Math.abs(touch.clientX - _touchStartX);
         const deltaY = Math.abs(touch.clientY - _touchStartY);
-        console.log(`[NAV] 📱 touchend — deltaX:${Math.round(deltaX)} deltaY:${Math.round(deltaY)}`);
-        if (deltaY > 10) {
-            console.log('[NAV] 🚫 Ignored — vertical scroll gesture');
-            return;
-        }
-        handleNav(touch.clientX, 'touch');
+        if (deltaY > 10) return;
+        handleNav(touch.clientX);
         e.preventDefault();
     };
 
