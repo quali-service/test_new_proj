@@ -15,6 +15,7 @@ let highlightModeActive = false;
 let vocabModeActive = false;
 let allEbooks = [];
 window.currentBookAuthor = '';
+window.currentBookAuthorId = null;
 let _saveProgressTimer = null;
 
 // --- 2. NAVIGATION & UI ---
@@ -86,7 +87,8 @@ function renderEbookList(ebooks) {
         <div class="group flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer"
              data-url="${escapeHtml(book.file_url)}"
              data-title="${escapeHtml(book.title)}"
-             data-author="${escapeHtml(authorName)}">
+             data-author="${escapeHtml(authorName)}"
+             data-author-id="${book.authors?.id || ''}">
             <div class="w-11 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${epub ? 'bg-indigo-50' : 'bg-rose-50'}">
                 <span class="text-2xl">${epub ? '📖' : '📄'}</span>
             </div>
@@ -163,9 +165,10 @@ async function loadEbooks() {
 }
 window.loadEbooks = loadEbooks;
 
-window.openReader = function(url, title, author) {
+window.openReader = function(url, title, author, authorId) {
     console.log("📖 Ouverture de :", title);
     window.currentBookAuthor = author || '';
+    window.currentBookAuthorId = authorId ? parseInt(authorId) : null;
     const grid = document.getElementById('ebook-grid');
     const container = document.getElementById('reader-container');
     const viewer = document.getElementById('pdf-viewer');
@@ -312,6 +315,7 @@ window.closeReader = function() {
     window.closeToc();
 
     window.currentBookAuthor = '';
+    window.currentBookAuthorId = null;
 
     // Reset highlight mode
     highlightModeActive = false;
@@ -1168,6 +1172,41 @@ window.selectAuthor = function(instanceId, id, name) {
     document.getElementById(`${instanceId}-author-dropdown`).classList.add('hidden');
 };
 
+// Resolves the author to submit for a form. Uses the id captured when a suggestion was
+// clicked, if any. Otherwise, if the user typed a name but never clicked a suggestion or
+// "Créer" — searchAuthors() clears the hidden id on every keystroke, so this is easy to do
+// by accident — looks up an exact match or creates the author, so a typed name is never
+// silently dropped as author_id: null.
+async function resolveAuthorId(instanceId) {
+    const hidden = document.getElementById(`${instanceId}-author-id-hidden`);
+    if (hidden && hidden.value) return parseInt(hidden.value);
+
+    const input = document.getElementById(`${instanceId}-author-search-input`);
+    const name = input ? input.value.trim() : '';
+    if (!name) return null;
+
+    try {
+        const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/authors?name=ilike.${encodeURIComponent(name)}&limit=1`,
+            { headers: HEADERS }
+        );
+        const matches = await res.json();
+        if (matches && matches[0]) return matches[0].id;
+
+        const createRes = await fetch(`${SUPABASE_URL}/rest/v1/authors`, {
+            method: 'POST',
+            headers: { ...HEADERS, 'Prefer': 'return=representation' },
+            body: JSON.stringify({ name })
+        });
+        const created = await createRes.json();
+        const author = Array.isArray(created) ? created[0] : created;
+        return author?.id ?? null;
+    } catch (e) {
+        console.error('[resolveAuthorId]', e);
+        return null;
+    }
+}
+
 window.createAuthor = async function(instanceId, name) {
     try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/authors`, {
@@ -1190,7 +1229,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ebookGrid.addEventListener('click', (e) => {
             const card = e.target.closest('[data-url]');
             if (!card) return;
-            openReader(card.dataset.url, card.dataset.title, card.dataset.author);
+            openReader(card.dataset.url, card.dataset.title, card.dataset.author, card.dataset.authorId);
         });
     }
 
@@ -1301,10 +1340,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (!uploadRes.ok) throw new Error("Erreur Storage");
 
-                const authorIdRaw = document.getElementById('ebook-author-id-hidden').value;
                 const payload = {
                     title: formData.get('title'),
-                    author_id: authorIdRaw ? parseInt(authorIdRaw) : null,
+                    author_id: await resolveAuthorId('ebook'),
                     category: formData.get('category'),
                     cover_url: formData.get('cover_url'),
                     file_url: `${SUPABASE_URL}/storage/v1/object/public/ebooks/${fileName}`,
@@ -1340,13 +1378,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const btn = document.getElementById('form-submit-btn');
             const formData = new FormData(e.target);
             
-            const ressourceAuthorIdRaw = document.getElementById('ressource-author-id-hidden').value;
             const payload = {
                 title: formData.get('titre'),
                 type: formData.get('nature'),
                 learning: formData.get('apprentissage'),
                 source_url: formData.get('url'),
-                author_id: ressourceAuthorIdRaw ? parseInt(ressourceAuthorIdRaw) : null,
+                author_id: await resolveAuthorId('ressource'),
                 created_at: new Date().toISOString()
             };
 
@@ -1388,6 +1425,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 type: formData.get('nature'),
                 learning: formData.get('apprentissage'),
                 source_url: '',
+                // Reuse the author already known from the open book — previously dropped here,
+                // which is why so many highlight-saved resources ended up with no author at all.
+                author_id: window.currentBookAuthorId || null,
                 created_at: new Date().toISOString()
             };
 
