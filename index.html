@@ -38,6 +38,12 @@
         <span>Librairie</span>
     </button>
 
+    <button onclick="showSection('ressources-list-section')" id="nav-ressources-list"
+        class="flex flex-col lg:flex-row items-center gap-1 lg:gap-3 px-4 py-2 lg:py-3 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all w-full text-sm font-bold group">
+        <span class="text-xl group-hover:scale-110 transition-transform">🗂️</span>
+        <span>Ressources</span>
+    </button>
+
     <button onclick="showSection('quiz-section')" id="nav-quiz"
         class="flex flex-col lg:flex-row items-center gap-1 lg:gap-3 px-4 py-2 lg:py-3 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all w-full text-sm font-bold group">
         <span class="text-xl group-hover:scale-110 transition-transform">🧠</span>
@@ -332,6 +338,55 @@
                 <p class="text-center text-xs text-slate-300 mt-4 select-none">← glisser pour passer à la suivante</p>
 
             </div><!-- end vocab-quiz-wrapper -->
+
+        </section>
+
+        <section id="ressources-list-section" class="hidden w-full max-w-3xl animate-reveal">
+
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-slate-800">Mes Ressources</h2>
+                <p class="text-slate-500 text-sm">Parcourez tout ce que vous avez capturé.</p>
+            </div>
+
+            <div class="mb-4 relative">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none">🔍</span>
+                <input id="ressources-list-search" type="search" placeholder="Rechercher une ressource..."
+                    class="w-full pl-11 pr-4 py-3 bg-white rounded-2xl border border-slate-100 focus:border-indigo-300 focus:ring-4 focus:ring-indigo-50 outline-none transition-all text-slate-700 placeholder:text-slate-400 shadow-sm"
+                    oninput="filterRessourcesList(this.value)">
+            </div>
+
+            <div class="mb-3">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Type</p>
+                <div id="ressources-type-filters" class="flex gap-2 overflow-x-auto pb-1 scrollbar-none"></div>
+            </div>
+
+            <div class="mb-4">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Auteur</p>
+                <div id="ressources-author-filters" class="flex gap-2 overflow-x-auto pb-1 scrollbar-none"></div>
+            </div>
+
+            <div class="flex items-center justify-between mb-4 gap-2">
+                <button id="ressources-missing-q-toggle" onclick="toggleRessourcesMissingQOnly(this)"
+                    class="px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-white text-slate-500 border border-slate-200 hover:border-amber-300">
+                    ⚠️ Sans question
+                </button>
+                <select id="ressources-sort-select" onchange="setRessourcesSort(this.value)"
+                    class="px-3 py-1.5 rounded-full text-xs font-bold bg-white border border-slate-200 text-slate-500 outline-none">
+                    <option value="recent">Plus récent</option>
+                    <option value="alpha">A-Z</option>
+                </select>
+            </div>
+
+            <div id="ressources-list-empty" class="hidden flex flex-col items-center py-12 space-y-2">
+                <p class="text-slate-400 italic text-center">Aucune ressource ne correspond.</p>
+            </div>
+
+            <div id="ressources-list-loading" class="flex flex-col items-center py-12 space-y-4">
+                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+                <p class="text-slate-400 italic">Chargement...</p>
+            </div>
+
+            <div id="ressources-list-container" class="hidden flex flex-col gap-3"></div>
 
         </section>
 

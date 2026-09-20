@@ -20,7 +20,7 @@ let _saveProgressTimer = null;
 // --- 2. NAVIGATION & UI ---
 
 window.showSection = function(sectionId) {
-    const sections = ['form-section', 'quiz-section', 'ebook-section'];
+    const sections = ['form-section', 'quiz-section', 'ebook-section', 'ressources-list-section'];
     sections.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle('hidden', id !== sectionId);
@@ -29,7 +29,8 @@ window.showSection = function(sectionId) {
     const navButtons = {
         'form-section': 'nav-form',
         'quiz-section': 'nav-quiz',
-        'ebook-section': 'nav-ebook'
+        'ebook-section': 'nav-ebook',
+        'ressources-list-section': 'nav-ressources-list'
     };
 
     Object.entries(navButtons).forEach(([sId, btnId]) => {
@@ -45,6 +46,7 @@ window.showSection = function(sectionId) {
         window.loadQuestion();
     }
     if (sectionId === 'ebook-section') window.loadEbooks();
+    if (sectionId === 'ressources-list-section') window.loadRessourcesList();
 };
 
 window.toggleAddEbookForm = function() {
@@ -887,6 +889,251 @@ async function loadRelatedResources(questionText) {
 function typeEmoji(type) {
     const map = { article: '📄', livre: '📖', video: '🎥', podcast: '🎧', cours: '🎓', outil: '🔧' };
     return map[(type || '').toLowerCase()] || '📎';
+}
+
+// --- 4c. LISTE DES RESSOURCES ---
+
+let allRessourcesList = [];
+let ressourcesTypeFilter = null;      // null = tous
+let ressourcesAuthorFilter = null;    // null = tous, 'none' = sans auteur
+let ressourcesMissingQOnly = false;
+let ressourcesSort = 'recent';        // 'recent' | 'alpha'
+let expandedRessourceId = null;
+let _ressourcesSearchQuery = '';
+
+window.loadRessourcesList = async function() {
+    const loading = document.getElementById('ressources-list-loading');
+    const empty = document.getElementById('ressources-list-empty');
+    const container = document.getElementById('ressources-list-container');
+
+    // Reset filters/search each time the tab is (re)opened, so it never shows a stale view
+    ressourcesTypeFilter = null;
+    ressourcesAuthorFilter = null;
+    ressourcesMissingQOnly = false;
+    ressourcesSort = 'recent';
+    expandedRessourceId = null;
+    _ressourcesSearchQuery = '';
+    const searchInput = document.getElementById('ressources-list-search');
+    if (searchInput) searchInput.value = '';
+    const sortSelect = document.getElementById('ressources-sort-select');
+    if (sortSelect) sortSelect.value = 'recent';
+    const missingBtn = document.getElementById('ressources-missing-q-toggle');
+    if (missingBtn) {
+        missingBtn.classList.remove('bg-amber-500', 'text-white');
+        missingBtn.classList.add('bg-white', 'text-slate-500', 'border', 'border-slate-200');
+    }
+
+    loading.classList.remove('hidden');
+    empty.classList.add('hidden');
+    container.classList.add('hidden');
+
+    try {
+        const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/ressources?select=*,authors(id,name),questions(id,question,choix,reponse_correcte,explication)&order=created_at.desc`,
+            { headers: HEADERS }
+        );
+        const data = await res.json();
+        allRessourcesList = data || [];
+        buildRessourcesFilters();
+        renderRessourcesList();
+    } catch (e) {
+        console.error('[loadRessourcesList]', e);
+        loading.classList.add('hidden');
+        container.innerHTML = `<p class="text-rose-500 text-center py-12">Erreur de chargement</p>`;
+        container.classList.remove('hidden');
+    }
+};
+
+function buildRessourcesFilters() {
+    const typeContainer = document.getElementById('ressources-type-filters');
+    const types = [...new Set(allRessourcesList.map(r => r.type).filter(Boolean))].sort();
+    typeContainer.innerHTML = `
+        <button onclick="setRessourcesTypeFilter(null, this)"
+            class="ressources-type-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-indigo-600 text-white shadow-sm">Tous</button>
+        ${types.map(t => `
+            <button onclick="setRessourcesTypeFilter('${t.replace(/'/g, "\\'")}', this)"
+                class="ressources-type-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-white text-slate-500 border border-slate-200 hover:border-indigo-300">
+                ${escapeHtml(t)}
+            </button>`).join('')}
+    `;
+
+    const authorContainer = document.getElementById('ressources-author-filters');
+    const authorsMap = new Map();
+    let hasNoAuthor = false;
+    allRessourcesList.forEach(r => {
+        if (r.authors?.id) authorsMap.set(r.authors.id, r.authors.name);
+        else hasNoAuthor = true;
+    });
+    const authorEntries = [...authorsMap.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+    authorContainer.innerHTML = `
+        <button onclick="setRessourcesAuthorFilter(null, this)"
+            class="ressources-author-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-indigo-600 text-white shadow-sm">Tous</button>
+        ${authorEntries.map(([id, name]) => `
+            <button onclick="setRessourcesAuthorFilter(${id}, this)"
+                class="ressources-author-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-white text-slate-500 border border-slate-200 hover:border-indigo-300">
+                ${escapeHtml(name)}
+            </button>`).join('')}
+        ${hasNoAuthor ? `
+            <button onclick="setRessourcesAuthorFilter('none', this)"
+                class="ressources-author-chip flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-white text-slate-500 border border-slate-200 hover:border-indigo-300">
+                Sans auteur
+            </button>` : ''}
+    `;
+}
+
+window.setRessourcesTypeFilter = function(type, btn) {
+    ressourcesTypeFilter = type;
+    document.querySelectorAll('.ressources-type-chip').forEach(c => {
+        c.classList.remove('bg-indigo-600', 'text-white', 'shadow-sm');
+        c.classList.add('bg-white', 'text-slate-500', 'border', 'border-slate-200');
+    });
+    btn.classList.remove('bg-white', 'text-slate-500', 'border', 'border-slate-200');
+    btn.classList.add('bg-indigo-600', 'text-white', 'shadow-sm');
+    renderRessourcesList();
+};
+
+window.setRessourcesAuthorFilter = function(authorId, btn) {
+    ressourcesAuthorFilter = authorId;
+    document.querySelectorAll('.ressources-author-chip').forEach(c => {
+        c.classList.remove('bg-indigo-600', 'text-white', 'shadow-sm');
+        c.classList.add('bg-white', 'text-slate-500', 'border', 'border-slate-200');
+    });
+    btn.classList.remove('bg-white', 'text-slate-500', 'border', 'border-slate-200');
+    btn.classList.add('bg-indigo-600', 'text-white', 'shadow-sm');
+    renderRessourcesList();
+};
+
+window.toggleRessourcesMissingQOnly = function(btn) {
+    ressourcesMissingQOnly = !ressourcesMissingQOnly;
+    if (ressourcesMissingQOnly) {
+        btn.classList.remove('bg-white', 'text-slate-500', 'border', 'border-slate-200');
+        btn.classList.add('bg-amber-500', 'text-white');
+    } else {
+        btn.classList.remove('bg-amber-500', 'text-white');
+        btn.classList.add('bg-white', 'text-slate-500', 'border', 'border-slate-200');
+    }
+    renderRessourcesList();
+};
+
+window.setRessourcesSort = function(mode) {
+    ressourcesSort = mode;
+    renderRessourcesList();
+};
+
+window.filterRessourcesList = function(query) {
+    _ressourcesSearchQuery = (query || '').trim();
+    renderRessourcesList();
+};
+
+window.toggleRessourceExpand = function(id) {
+    expandedRessourceId = expandedRessourceId === id ? null : id;
+    renderRessourcesList();
+};
+
+function getFilteredRessourcesList() {
+    let rows = allRessourcesList;
+
+    if (ressourcesTypeFilter) rows = rows.filter(r => r.type === ressourcesTypeFilter);
+
+    if (ressourcesAuthorFilter === 'none') rows = rows.filter(r => !r.authors);
+    else if (ressourcesAuthorFilter) rows = rows.filter(r => r.authors?.id === ressourcesAuthorFilter);
+
+    if (ressourcesMissingQOnly) rows = rows.filter(r => !r.questions || r.questions.length === 0);
+
+    if (_ressourcesSearchQuery) {
+        const q = _ressourcesSearchQuery;
+        // Fuzzy subsequence matching works well for short strings (title/author) but produces
+        // false positives on long paragraph text (nearly any short query's letters appear
+        // "in order" somewhere in a few hundred characters) — use strict substring for `learning`.
+        const qNorm = stripAccents(q.toLowerCase());
+        rows = rows
+            .map(r => {
+                const titleScore = fuzzyScore(q, r.title || '');
+                const authorScore = fuzzyScore(q, r.authors?.name || '');
+                const learningMatch = stripAccents((r.learning || '').toLowerCase()).includes(qNorm);
+                return { r, score: Math.max(titleScore, authorScore, learningMatch ? 1 : 0) };
+            })
+            .filter(x => x.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .map(x => x.r);
+    } else if (ressourcesSort === 'alpha') {
+        rows = [...rows].sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    } else {
+        rows = [...rows].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
+
+    return rows;
+}
+
+function renderRessourcesList() {
+    const loading = document.getElementById('ressources-list-loading');
+    const empty = document.getElementById('ressources-list-empty');
+    const container = document.getElementById('ressources-list-container');
+    loading.classList.add('hidden');
+
+    const rows = getFilteredRessourcesList();
+
+    if (rows.length === 0) {
+        container.classList.add('hidden');
+        empty.classList.remove('hidden');
+        return;
+    }
+    empty.classList.add('hidden');
+    container.classList.remove('hidden');
+    container.innerHTML = rows.map(r => renderRessourceRow(r)).join('');
+}
+
+const RESSOURCE_TYPE_BADGE = {
+    'Livre': 'bg-indigo-50 text-indigo-500',
+    'Revue': 'bg-amber-50 text-amber-500',
+    'Film': 'bg-rose-50 text-rose-500',
+    'Série': 'bg-purple-50 text-purple-500',
+    'Conférence': 'bg-emerald-50 text-emerald-500',
+    'Étude': 'bg-blue-50 text-blue-500'
+};
+
+function renderRessourceRow(r) {
+    const authorName = r.authors?.name || 'Sans auteur';
+    const hasQuestion = r.questions && r.questions.length > 0;
+    const isExpanded = expandedRessourceId === r.id;
+    const badgeClass = RESSOURCE_TYPE_BADGE[r.type] || 'bg-slate-50 text-slate-500';
+
+    let detail = '';
+    if (isExpanded) {
+        detail = `
+        <div class="mt-4 pt-4 border-t border-slate-100 space-y-3">
+            <p class="text-slate-600 text-sm leading-relaxed">${escapeHtml(r.learning || '')}</p>
+            ${r.source_url ? `<a href="${escapeHtml(r.source_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="inline-block text-xs text-indigo-500 hover:underline">${escapeHtml(r.source_url)}</a>` : ''}
+            ${hasQuestion ? renderRessourceQuestion(r.questions[0]) : `<p class="text-xs text-amber-600 font-semibold">⚠️ Aucune question n'a encore été créée pour cette ressource.</p>`}
+        </div>`;
+    }
+
+    return `
+    <div class="bg-white rounded-2xl border border-slate-100 hover:border-indigo-200 transition-all p-4 cursor-pointer" onclick="toggleRessourceExpand(${r.id})">
+        <div class="flex items-start gap-3">
+            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg flex-shrink-0 ${badgeClass}">${escapeHtml(r.type || '?')}</span>
+            <div class="flex-1 min-w-0">
+                <h3 class="font-bold text-slate-800 truncate">${escapeHtml(r.title)}</h3>
+                <p class="text-xs text-slate-400">${escapeHtml(authorName)}</p>
+                ${!isExpanded ? `<p class="text-sm text-slate-500 mt-1 line-clamp-2">${escapeHtml(r.learning || '')}</p>` : ''}
+            </div>
+            <span class="text-lg flex-shrink-0" title="${hasQuestion ? 'Question créée' : 'Pas de question'}">${hasQuestion ? '✅' : '⚠️'}</span>
+        </div>
+        ${detail}
+    </div>`;
+}
+
+function renderRessourceQuestion(q) {
+    const choices = (q.choix || []).map((c, i) => `
+        <div class="p-2.5 rounded-lg text-sm ${i === q.reponse_correcte ? 'bg-emerald-50 border border-emerald-200 text-emerald-700 font-semibold' : 'bg-slate-50 text-slate-600'}">${escapeHtml(c)}</div>
+    `).join('');
+    return `
+    <div class="bg-slate-50/60 rounded-xl p-4 space-y-2">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Question liée</p>
+        <p class="font-semibold text-slate-700 text-sm">${escapeHtml(q.question)}</p>
+        <div class="space-y-1.5">${choices}</div>
+        ${q.explication ? `<p class="text-xs text-slate-500 italic mt-2">${escapeHtml(q.explication)}</p>` : ''}
+    </div>`;
 }
 
 // --- 5. AUTHOR TYPEAHEAD ---
