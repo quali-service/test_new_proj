@@ -111,6 +111,16 @@ const Reader = {
             setTimeout(() => {
                 if (this.rendition) {
                     this.rendition.resize();
+                    // This first display() call ran before applyTheme()'s font-size/line-height/
+                    // padding CSS was injected — that only happens reactively via the "rendered"
+                    // event as the section loads, which fires asynchronously after display()
+                    // already computed which page contains startCfi, using the book's default
+                    // (un-themed) layout. Once the theme has settled, that's the wrong page under
+                    // our actual layout — re-issuing display() now re-paginates with the real
+                    // theme active and lands exactly on the saved position instead of drifting.
+                    if (startCfi) {
+                        this.rendition.display(startCfi);
+                    }
                     const overlay = document.getElementById('reader-overlay');
                     if (overlay) {
                         overlay.classList.remove('hidden');
