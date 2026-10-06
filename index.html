@@ -251,6 +251,12 @@
                             <p class="text-slate-400 italic text-center">Aucune question pour cet auteur.</p>
                         </div>
 
+                        <div id="quiz-exhausted" class="hidden flex flex-col items-center py-12 space-y-4 text-center">
+                            <span class="text-4xl">🎉</span>
+                            <p class="text-slate-500 font-semibold">Vous avez répondu à toutes les questions disponibles<span id="quiz-exhausted-label"></span> pour cette session !</p>
+                            <button onclick="resetQuizSeen()" class="px-5 py-2 bg-indigo-600 text-white text-sm font-bold rounded-full hover:bg-indigo-700 transition-all">Recommencer</button>
+                        </div>
+
                         <div id="loading" class="flex flex-col items-center py-12 space-y-4">
                             <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
                             <p class="text-slate-400 italic">Récupération de la question...</p>
@@ -300,6 +306,12 @@
 
                         <div id="vocab-quiz-empty" class="hidden flex flex-col items-center py-12 space-y-2">
                             <p class="text-slate-400 italic text-center">Sauvegardez au moins 4 mots depuis le lecteur pour commencer.</p>
+                        </div>
+
+                        <div id="vocab-quiz-exhausted" class="hidden flex flex-col items-center py-12 space-y-4 text-center">
+                            <span class="text-4xl">🎉</span>
+                            <p class="text-slate-500 font-semibold">Vous avez révisé tous les mots disponibles<span id="vocab-exhausted-label"></span> pour cette session !</p>
+                            <button onclick="resetVocabSeen()" class="px-5 py-2 bg-blue-600 text-white text-sm font-bold rounded-full hover:bg-blue-700 transition-all">Recommencer</button>
                         </div>
 
                         <div id="vocab-quiz-loading" class="flex flex-col items-center py-12 space-y-4">

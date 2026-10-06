@@ -578,13 +578,15 @@ function handleKeyNav(e) {
 
 // --- 4. LOGIQUE QUIZ ---
 
-let lastQuestionId = null;
+let seenQuestionIds = new Set(); // every question id shown this session — never repeats until reset
 let quizAuthorFilter = null; // null = all
+let quizAuthorFilterLabel = null; // display name of the active author filter, for the "ran out" message
 
 // --- 4b. QUIZ VOCABULAIRE ---
 
-let lastVocabId = null;
+let seenVocabIds = new Set(); // same idea as seenQuestionIds, for the vocab pool
 let vocabQuizSourceFilter = null;
+let vocabQuizSourceFilterLabel = null;
 let _vocabSourcesLoaded = false;
 
 window.switchQuizTab = function(tab) {
@@ -619,6 +621,7 @@ async function loadVocabSources() {
 
 window.setVocabSourceFilter = function(title, btn) {
     vocabQuizSourceFilter = title;
+    vocabQuizSourceFilterLabel = title ? btn.textContent.trim() : null;
     document.querySelectorAll('.vocab-source-chip').forEach(c => {
         c.classList.remove('bg-indigo-600', 'text-white', 'shadow-sm');
         c.classList.add('bg-white', 'text-slate-500', 'border', 'border-slate-200');
@@ -628,16 +631,25 @@ window.setVocabSourceFilter = function(title, btn) {
     loadVocabQuestion();
 };
 
+// Clears the "seen this session" memory so the vocab quiz can be replayed from scratch —
+// surfaced via the "Recommencer" button once every word has been exhausted.
+window.resetVocabSeen = function() {
+    seenVocabIds.clear();
+    loadVocabQuestion();
+};
+
 window.loadVocabQuestion = async function() {
     const loading = document.getElementById('vocab-quiz-loading');
     const content = document.getElementById('vocab-quiz-content');
     const empty   = document.getElementById('vocab-quiz-empty');
+    const exhausted = document.getElementById('vocab-quiz-exhausted');
     const result  = document.getElementById('vocab-result');
     const submit  = document.getElementById('vocab-submit-btn');
 
     loading.classList.remove('hidden');
     content.classList.add('hidden');
     empty.classList.add('hidden');
+    if (exhausted) exhausted.classList.add('hidden');
     if (result) result.classList.add('hidden');
     if (submit) { submit.classList.remove('hidden'); submit.disabled = false; }
 
@@ -658,14 +670,21 @@ window.loadVocabQuestion = async function() {
             return;
         }
 
-        let entry;
-        if (pool.length > 1) {
-            do { entry = pool[Math.floor(Math.random() * pool.length)]; }
-            while (entry.id === lastVocabId);
-        } else {
-            entry = pool[0];
+        // Never repeat a word already shown this session — pick only from the pool minus
+        // whatever's already been seen, instead of just avoiding the immediately-previous one.
+        const unseen = pool.filter(v => !seenVocabIds.has(v.id));
+        if (unseen.length === 0) {
+            loading.classList.add('hidden');
+            if (exhausted) {
+                const label = document.getElementById('vocab-exhausted-label');
+                if (label) label.textContent = vocabQuizSourceFilterLabel ? ` pour ${vocabQuizSourceFilterLabel}` : '';
+                exhausted.classList.remove('hidden');
+            }
+            return;
         }
-        lastVocabId = entry.id;
+
+        const entry = unseen[Math.floor(Math.random() * unseen.length)];
+        seenVocabIds.add(entry.id);
 
         const distractors = all
             .filter(v => v.id !== entry.id)
@@ -724,12 +743,20 @@ function displayVocabResult(isCorrect, entry) {
 
 window.setQuizAuthorFilter = function(authorId, btn) {
     quizAuthorFilter = authorId;
+    quizAuthorFilterLabel = authorId !== null ? btn.textContent.trim() : null;
     document.querySelectorAll('.quiz-author-chip').forEach(c => {
         c.classList.remove('bg-indigo-600', 'text-white', 'shadow-sm');
         c.classList.add('bg-white', 'text-slate-500', 'border', 'border-slate-200');
     });
     btn.classList.remove('bg-white', 'text-slate-500', 'border', 'border-slate-200');
     btn.classList.add('bg-indigo-600', 'text-white', 'shadow-sm');
+    window.loadQuestion();
+};
+
+// Clears the "seen this session" memory so the quiz can be replayed from scratch — surfaced
+// via the "Recommencer" button once every question (for the active filter) has been exhausted.
+window.resetQuizSeen = function() {
+    seenQuestionIds.clear();
     window.loadQuestion();
 };
 
@@ -756,10 +783,12 @@ window.loadQuestion = async function() {
     const submitBtn = document.getElementById('submit-btn');
 
     const emptyState = document.getElementById('quiz-empty');
+    const exhaustedState = document.getElementById('quiz-exhausted');
     const related = document.getElementById('quiz-related');
     if (loading) loading.classList.remove('hidden');
     if (content) content.classList.add('hidden');
     if (emptyState) emptyState.classList.add('hidden');
+    if (exhaustedState) exhaustedState.classList.add('hidden');
     if (result) result.classList.add('hidden');
     if (related) related.classList.add('hidden');
     if (submitBtn) {
@@ -776,26 +805,31 @@ window.loadQuestion = async function() {
             : (allQuestions || []);
 
         if (!questions || questions.length === 0) {
+            // No questions exist at all for this filter — distinct from "seen them all" below.
             if (loading) loading.classList.add('hidden');
             if (emptyState) emptyState.classList.remove('hidden');
             return;
         }
 
         // --- LOGIQUE ANTI-REPETITION ---
-        let selectedQuestion;
-        
-        // Si on a plus d'une question, on essaie d'en trouver une différente de la dernière
-        if (questions.length > 1) {
-            do {
-                selectedQuestion = questions[Math.floor(Math.random() * questions.length)];
-            } while (selectedQuestion.id === lastQuestionId); 
-        } else {
-            selectedQuestion = questions[0];
+        // Never repeat a question already shown this session — pick only from the ones not yet
+        // in seenQuestionIds, instead of just avoiding the immediately-previous one. If that
+        // leaves nothing to pick from, say so explicitly rather than silently re-showing old
+        // questions (the "Recommencer" button clears seenQuestionIds to start over).
+        const unseen = questions.filter(q => !seenQuestionIds.has(q.id));
+        if (unseen.length === 0) {
+            if (loading) loading.classList.add('hidden');
+            if (exhaustedState) {
+                const label = document.getElementById('quiz-exhausted-label');
+                if (label) label.textContent = quizAuthorFilterLabel ? ` pour ${quizAuthorFilterLabel}` : '';
+                exhaustedState.classList.remove('hidden');
+            }
+            return;
         }
 
-        // On mémorise l'ID pour le prochain tirage
-        lastQuestionId = selectedQuestion.id;
-        
+        const selectedQuestion = unseen[Math.floor(Math.random() * unseen.length)];
+        seenQuestionIds.add(selectedQuestion.id);
+
         renderQuiz(selectedQuestion);
 
     } catch (err) {
