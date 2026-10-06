@@ -20,6 +20,15 @@ let _saveProgressTimer = null;
 
 // --- 2. NAVIGATION & UI ---
 
+// Quiz and the Ressources browse tab both need a live Supabase connection to be useful at
+// all (random-draw questions, full-table filtering) — offline reading and adding resources
+// don't depend on either, so these two are blocked outright while offline rather than left
+// to spin forever or throw a raw fetch error.
+const OFFLINE_RESTRICTED_SECTIONS = {
+    'quiz-section': { notice: 'quiz-offline-notice', content: 'quiz-online-content' },
+    'ressources-list-section': { notice: 'ressources-list-offline-notice', content: 'ressources-list-online-content' }
+};
+
 window.showSection = function(sectionId) {
     const sections = ['form-section', 'quiz-section', 'ebook-section', 'ressources-list-section'];
     sections.forEach(id => {
@@ -42,6 +51,17 @@ window.showSection = function(sectionId) {
         }
     });
 
+    const restriction = OFFLINE_RESTRICTED_SECTIONS[sectionId];
+    if (restriction) {
+        const blocked = !navigator.onLine;
+        const notice = document.getElementById(restriction.notice);
+        const content = document.getElementById(restriction.content);
+        if (notice) notice.classList.toggle('hidden', !blocked);
+        if (notice) notice.classList.toggle('flex', blocked);
+        if (content) content.classList.toggle('hidden', blocked);
+        if (blocked) return; // don't fire the data fetches below — they'd just fail
+    }
+
     if (sectionId === 'quiz-section') {
         if (document.querySelectorAll('.quiz-author-chip').length <= 1) loadQuizAuthors();
         window.loadQuestion();
@@ -49,6 +69,107 @@ window.showSection = function(sectionId) {
     if (sectionId === 'ebook-section') window.loadEbooks();
     if (sectionId === 'ressources-list-section') window.loadRessourcesList();
 };
+
+// --- OFFLINE STATE & WRITE QUEUE ---
+//
+// "Offline" for this app means: books already opened stay readable (the service worker
+// caches their file the first time they're opened), and the ressource/highlight/vocab
+// "save" actions queue locally and sync automatically once the connection returns. Quiz and
+// the Ressources browse tab are blocked outright while offline (see OFFLINE_RESTRICTED_SECTIONS
+// above) rather than trying to make full-table browsing/randomized quizzing work offline.
+
+const OFFLINE_QUEUE_KEY = 'offlineWriteQueue';
+
+function getOfflineQueue() {
+    try { return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY)) || []; }
+    catch (e) { return []; }
+}
+
+function setOfflineQueue(queue) {
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+    updateOfflineQueueBadge();
+}
+
+// table: 'ressources' | 'vocabulary'. payload: the row to insert. authorName: raw typed
+// text for an author field not yet resolved to an id (resolved at sync time, once we're
+// back online and can actually look it up / create it).
+function queueOfflineWrite(table, payload, authorName) {
+    const queue = getOfflineQueue();
+    queue.push({ id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, table, payload, authorName: authorName || null });
+    setOfflineQueue(queue);
+}
+
+function updateOfflineQueueBadge() {
+    const badge = document.getElementById('offline-queue-badge');
+    if (!badge) return;
+    const count = getOfflineQueue().length;
+    badge.textContent = count;
+    badge.classList.toggle('hidden', count === 0);
+}
+
+// Reentrancy guard: 'online' can legitimately fire more than once in a row (flaky wifi
+// reconnecting, multiple listeners triggering close together). Without this, two overlapping
+// flushes both read the same not-yet-cleared queue and both POST the same item — duplicate rows.
+let _flushInProgress = false;
+
+async function flushOfflineQueue() {
+    if (!navigator.onLine || _flushInProgress) return;
+    _flushInProgress = true;
+    try {
+        const queue = getOfflineQueue();
+        if (queue.length === 0) return;
+
+        const succeededIds = new Set();
+        for (const item of queue) {
+            try {
+                const payload = { ...item.payload };
+                if (item.authorName && !payload.author_id) {
+                    payload.author_id = await resolveAuthorIdByName(item.authorName);
+                }
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/${item.table}`, {
+                    method: 'POST',
+                    headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                succeededIds.add(item.id);
+            } catch (e) {
+                console.error('[flushOfflineQueue] failed, will retry later:', e);
+            }
+        }
+        if (succeededIds.size > 0) {
+            // Re-read rather than reuse the stale `queue` snapshot, in case a new item was
+            // queued while this flush was in flight.
+            setOfflineQueue(getOfflineQueue().filter(item => !succeededIds.has(item.id)));
+            console.log(`[flushOfflineQueue] synced ${succeededIds.size} queued item(s)`);
+        }
+    } finally {
+        _flushInProgress = false;
+    }
+}
+
+function updateOnlineStatus() {
+    const banner = document.getElementById('offline-banner');
+    if (banner) banner.classList.toggle('hidden', navigator.onLine);
+
+    ['nav-quiz', 'nav-ressources-list'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.classList.toggle('opacity-40', !navigator.onLine);
+    });
+
+    // If the currently open section is one of the offline-restricted ones, re-run
+    // showSection() so its notice/content visibility (and data load) reflects the new state.
+    const currentSectionId = Object.keys(OFFLINE_RESTRICTED_SECTIONS).find(sId => {
+        const el = document.getElementById(sId);
+        return el && !el.classList.contains('hidden');
+    });
+    if (currentSectionId) window.showSection(currentSectionId);
+
+    updateOfflineQueueBadge();
+    if (navigator.onLine) flushOfflineQueue();
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
 
 window.toggleAddEbookForm = function() {
     const container = document.getElementById('add-ebook-container');
@@ -261,7 +382,10 @@ window.openReader = function(url, title, author, authorId) {
                 });
             })      .catch(err => {
                 console.error("❌ Erreur de lecture :", err);
-                if (epubCont) epubCont.innerHTML = `<div class='p-10 text-center text-rose-500 font-bold'>Impossible d'ouvrir le livre : ${err.message}</div>`;
+                const msg = !navigator.onLine
+                    ? "Vous êtes hors-ligne et ce livre n'a pas encore été ouvert sur cet appareil — impossible de le mettre en cache. Ouvrez-le une fois en ligne pour pouvoir le relire hors-ligne ensuite."
+                    : `Impossible d'ouvrir le livre : ${err.message}`;
+                if (epubCont) epubCont.innerHTML = `<div class='p-10 text-center text-rose-500 font-bold'>${msg}</div>`;
             });
 
         window.addEventListener("keydown", handleKeyNav);
@@ -512,8 +636,16 @@ window.openVocabModal = function(word, context, title) {
     document.getElementById('vocab-word').textContent = word;
     document.getElementById('vocab-context').value = context || '';
     document.getElementById('vocab-translation').value = '';
-    document.getElementById('vocab-loading').classList.remove('hidden');
     document.getElementById('vocab-modal').classList.remove('hidden');
+
+    if (!navigator.onLine) {
+        // Auto-translate needs the network (OpenAI) — no point trying. Let the user type
+        // their own translation; the entry itself still queues and syncs fine offline.
+        document.getElementById('vocab-translation').placeholder = 'Hors-ligne — saisissez la traduction manuellement';
+        return;
+    }
+
+    document.getElementById('vocab-loading').classList.remove('hidden');
 
     fetch(`${SUPABASE_URL}/functions/v1/translate`, {
         method: 'POST',
@@ -550,6 +682,13 @@ window.saveVocab = async function() {
     const btn = document.getElementById('vocab-save-btn');
 
     if (!word || !translation) return;
+
+    if (!navigator.onLine) {
+        queueOfflineWrite('vocabulary', { word, translation, context, source_title: _vocabSourceTitle });
+        window.closeVocabModal();
+        alert("Hors-ligne : mot enregistré localement, il sera synchronisé dès que vous serez en ligne.");
+        return;
+    }
 
     try {
         btn.disabled = true;
@@ -1206,17 +1345,10 @@ window.selectAuthor = function(instanceId, id, name) {
     document.getElementById(`${instanceId}-author-dropdown`).classList.add('hidden');
 };
 
-// Resolves the author to submit for a form. Uses the id captured when a suggestion was
-// clicked, if any. Otherwise, if the user typed a name but never clicked a suggestion or
-// "Créer" — searchAuthors() clears the hidden id on every keystroke, so this is easy to do
-// by accident — looks up an exact match or creates the author, so a typed name is never
-// silently dropped as author_id: null.
-async function resolveAuthorId(instanceId) {
-    const hidden = document.getElementById(`${instanceId}-author-id-hidden`);
-    if (hidden && hidden.value) return parseInt(hidden.value);
-
-    const input = document.getElementById(`${instanceId}-author-search-input`);
-    const name = input ? input.value.trim() : '';
+// Core of resolveAuthorId(), factored out so the offline-queue flush can resolve a typed
+// author name the same way (exact match, else create) without touching any form DOM.
+async function resolveAuthorIdByName(name) {
+    name = (name || '').trim();
     if (!name) return null;
 
     try {
@@ -1236,9 +1368,24 @@ async function resolveAuthorId(instanceId) {
         const author = Array.isArray(created) ? created[0] : created;
         return author?.id ?? null;
     } catch (e) {
-        console.error('[resolveAuthorId]', e);
+        console.error('[resolveAuthorIdByName]', e);
         return null;
     }
+}
+
+// Resolves the author to submit for a form. Uses the id captured when a suggestion was
+// clicked, if any. Otherwise, if the user typed a name but never clicked a suggestion or
+// "Créer" — searchAuthors() clears the hidden id on every keystroke, so this is easy to do
+// by accident — looks up an exact match or creates the author, so a typed name is never
+// silently dropped as author_id: null.
+async function resolveAuthorId(instanceId) {
+    const hidden = document.getElementById(`${instanceId}-author-id-hidden`);
+    if (hidden && hidden.value) return parseInt(hidden.value);
+
+    const input = document.getElementById(`${instanceId}-author-search-input`);
+    const name = input ? input.value.trim() : '';
+    if (!name) return null;
+    return resolveAuthorIdByName(name);
 }
 
 window.createAuthor = async function(instanceId, name) {
@@ -1257,6 +1404,8 @@ window.createAuthor = async function(instanceId, name) {
 // --- 6. INITIALISATION ---
 
 document.addEventListener('DOMContentLoaded', () => {
+    updateOnlineStatus(); // set initial offline banner / nav state / queue badge, and flush if already online
+
     // Single delegated listener for book grid — set up once, never duplicated
     const ebookGrid = document.getElementById('ebook-grid');
     if (ebookGrid) {
@@ -1411,7 +1560,26 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const btn = document.getElementById('form-submit-btn');
             const formData = new FormData(e.target);
-            
+            const authorInput = document.getElementById('ressource-author-search-input');
+
+            if (!navigator.onLine) {
+                // Author lookup/creation needs the network — queue the raw typed name and
+                // resolve it at sync time instead, once we're actually back online.
+                queueOfflineWrite('ressources', {
+                    title: formData.get('titre'),
+                    type: formData.get('nature'),
+                    learning: formData.get('apprentissage'),
+                    source_url: formData.get('url'),
+                    author_id: null,
+                    created_at: new Date().toISOString()
+                }, authorInput ? authorInput.value.trim() : '');
+                alert("Hors-ligne : ressource enregistrée localement, elle sera synchronisée dès que vous serez en ligne.");
+                e.target.reset();
+                if (authorInput) authorInput.value = '';
+                document.getElementById('ressource-author-id-hidden').value = '';
+                return;
+            }
+
             const payload = {
                 title: formData.get('titre'),
                 type: formData.get('nature'),
@@ -1464,6 +1632,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 author_id: window.currentBookAuthorId || null,
                 created_at: new Date().toISOString()
             };
+
+            if (!navigator.onLine) {
+                queueOfflineWrite('ressources', payload);
+                window.closeHighlightModal();
+                alert("Hors-ligne : passage enregistré localement, il sera synchronisé dès que vous serez en ligne.");
+                return;
+            }
 
             try {
                 btn.disabled = true;

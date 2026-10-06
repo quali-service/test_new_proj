@@ -24,6 +24,10 @@
 
 <body class="bg-slate-50 min-h-screen text-slate-900 font-sans">
 
+    <div id="offline-banner" class="hidden fixed top-0 left-0 w-full z-[300] bg-amber-500 text-white text-xs font-bold text-center py-1.5">
+        🔌 Hors-ligne — lecture des livres déjà ouverts et ajout de ressources restent disponibles
+    </div>
+
 
 
    <nav class="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 z-50 lg:top-0 lg:left-0 lg:w-64 lg:h-full lg:border-t-0 lg:border-r flex lg:flex-col justify-around lg:justify-start p-2 lg:p-6 gap-2">
@@ -51,9 +55,11 @@
     </button>
 
     <button onclick="showSection('form-section')" id="nav-form"
-        class="flex flex-col lg:flex-row items-center gap-1 lg:gap-3 px-4 py-2 lg:py-3 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all w-full text-sm font-bold group">
+        class="relative flex flex-col lg:flex-row items-center gap-1 lg:gap-3 px-4 py-2 lg:py-3 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all w-full text-sm font-bold group">
         <span class="text-xl group-hover:scale-110 transition-transform">📝</span>
         <span>Ajouter</span>
+        <span id="offline-queue-badge" title="En attente de synchronisation"
+            class="hidden absolute top-0 right-2 lg:static lg:ml-auto min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-amber-500 text-white text-[10px] font-bold rounded-full">0</span>
     </button>
 </nav>
 
@@ -215,6 +221,13 @@
 
         <section id="quiz-section" class="hidden w-full max-w-lg animate-reveal overflow-x-hidden">
 
+            <div id="quiz-offline-notice" class="hidden flex-col items-center py-16 space-y-3 text-center">
+                <span class="text-4xl">🔌</span>
+                <p class="text-slate-500 font-semibold">Le quiz nécessite une connexion internet.</p>
+            </div>
+
+            <div id="quiz-online-content">
+
             <!-- Quiz type tabs -->
             <div class="flex gap-2 mb-4">
                 <button id="tab-ressources" onclick="switchQuizTab('ressources')"
@@ -351,9 +364,18 @@
 
             </div><!-- end vocab-quiz-wrapper -->
 
+            </div><!-- end quiz-online-content -->
+
         </section>
 
         <section id="ressources-list-section" class="hidden w-full max-w-3xl animate-reveal">
+
+            <div id="ressources-list-offline-notice" class="hidden flex-col items-center py-16 space-y-3 text-center">
+                <span class="text-4xl">🔌</span>
+                <p class="text-slate-500 font-semibold">Cette section nécessite une connexion internet.</p>
+            </div>
+
+            <div id="ressources-list-online-content">
 
             <div class="mb-6">
                 <h2 class="text-2xl font-bold text-slate-800">Mes Ressources</h2>
@@ -399,6 +421,8 @@
             </div>
 
             <div id="ressources-list-container" class="hidden flex flex-col gap-3"></div>
+
+            </div><!-- end ressources-list-online-content -->
 
         </section>
 
@@ -525,6 +549,13 @@
 
 
     <script>if(new URLSearchParams(location.search).get('debug')==='1'){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/eruda';s.onload=function(){eruda.init();};document.head.appendChild(s);}</script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(err => console.error('[sw] registration failed:', err));
+            });
+        }
+    </script>
     <script src="reader.js"></script>
     <script src="app.js"></script>
 
