@@ -70,7 +70,20 @@
 
         <section id="form-section" class="hidden w-full max-w-3xl animate-reveal">
 
-            <div id="admin-form-container" class="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-3xl shadow-xl border border-slate-100">
+            <div class="flex gap-2 mb-4 max-w-2xl mx-auto mt-10">
+                <button id="tab-form-ressource" onclick="switchFormTab('ressource')"
+                    class="flex-1 py-2.5 rounded-2xl text-sm font-bold transition-all bg-indigo-600 text-white shadow-sm">
+                    Ressource
+                </button>
+                <button id="tab-form-rappels" onclick="switchFormTab('rappels')"
+                    class="flex-1 py-2.5 rounded-2xl text-sm font-bold transition-all bg-slate-100 text-slate-500 hover:bg-slate-200">
+                    Rappels
+                </button>
+            </div>
+
+            <div id="form-ressource-wrapper">
+
+            <div id="admin-form-container" class="max-w-2xl mx-auto p-6 bg-white rounded-3xl shadow-xl border border-slate-100">
 
     <div class="mb-8">
 
@@ -214,6 +227,28 @@
     </form>
 
 </div>
+
+            </div><!-- end form-ressource-wrapper -->
+
+            <div id="form-rappels-wrapper" class="hidden max-w-2xl mx-auto p-6 bg-white rounded-3xl shadow-xl border border-slate-100">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-slate-800">Rappels quotidiens</h2>
+                    <p class="text-slate-500 text-sm">Notifications envoyées via ntfy.sh aux heures ci-dessous.</p>
+                </div>
+
+                <div id="reminders-list" class="space-y-2 mb-6"></div>
+
+                <form id="reminder-add-form" class="flex flex-col sm:flex-row gap-3 pt-5 border-t border-slate-100">
+                    <input type="time" name="time_of_day" required
+                        class="px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all">
+                    <input type="text" name="message" required placeholder="Message du rappel"
+                        class="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all placeholder:text-slate-400">
+                    <button type="submit"
+                        class="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-indigo-600 active:scale-[0.98] transition-all whitespace-nowrap">
+                        Ajouter
+                    </button>
+                </form>
+            </div>
 
         </section>
 

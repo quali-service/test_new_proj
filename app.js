@@ -180,6 +180,132 @@ window.toggleAddEbookForm = function() {
     document.getElementById('toggle-text').textContent = isHidden ? "Fermer" : "Ajouter un livre";
 };
 
+// --- 2b. RAPPELS (notifications ntfy.sh, planifiées côté Supabase via pg_cron) ---
+//
+// This tab only manages the `reminder_schedule` table — the actual sending happens entirely
+// in Postgres (pg_cron + pg_net POSTing to ntfy.sh), independent of whether this app is even
+// open. This UI is just CRUD over that table.
+
+let allReminders = [];
+let editingReminderId = null; // id of the row currently shown in inline-edit mode, or null
+
+window.switchFormTab = function(tab) {
+    const isRappels = tab === 'rappels';
+    document.getElementById('form-ressource-wrapper').classList.toggle('hidden', isRappels);
+    document.getElementById('form-rappels-wrapper').classList.toggle('hidden', !isRappels);
+    const activeClass = 'flex-1 py-2.5 rounded-2xl text-sm font-bold transition-all bg-indigo-600 text-white shadow-sm';
+    const inactiveClass = 'flex-1 py-2.5 rounded-2xl text-sm font-bold transition-all bg-slate-100 text-slate-500 hover:bg-slate-200';
+    document.getElementById('tab-form-ressource').className = isRappels ? inactiveClass : activeClass;
+    document.getElementById('tab-form-rappels').className = isRappels ? activeClass : inactiveClass;
+    if (isRappels) loadReminders();
+};
+
+async function loadReminders() {
+    const container = document.getElementById('reminders-list');
+    if (!container) return;
+    container.innerHTML = `<div class="flex justify-center py-6"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div></div>`;
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/reminder_schedule?select=*&order=time_of_day.asc`, { headers: HEADERS });
+        allReminders = await res.json() || [];
+        editingReminderId = null;
+        renderReminderList();
+    } catch (e) {
+        container.innerHTML = `<p class="text-rose-500 text-sm text-center py-4">Erreur de chargement</p>`;
+        console.error('[loadReminders]', e);
+    }
+}
+
+function renderReminderList() {
+    const container = document.getElementById('reminders-list');
+    if (!container) return;
+
+    if (!allReminders.length) {
+        container.innerHTML = `<p class="text-slate-400 italic text-sm text-center py-4">Aucun rappel configuré.</p>`;
+        return;
+    }
+
+    container.innerHTML = allReminders.map(r => {
+        if (editingReminderId === r.id) {
+            return `
+            <div class="flex items-center gap-2 p-3 bg-indigo-50 rounded-xl">
+                <input type="time" id="edit-time-${r.id}" value="${r.time_of_day.slice(0, 5)}"
+                    class="px-2 py-1.5 rounded-lg border border-slate-200 text-sm">
+                <input type="text" id="edit-message-${r.id}" value="${escapeHtml(r.message)}"
+                    class="flex-1 min-w-0 px-2 py-1.5 rounded-lg border border-slate-200 text-sm">
+                <button onclick="saveReminderEdit(${r.id})" class="text-emerald-600 font-bold text-sm px-1 flex-shrink-0">✓</button>
+                <button onclick="cancelReminderEdit()" class="text-slate-400 font-bold text-sm px-1 flex-shrink-0">✕</button>
+            </div>`;
+        }
+        return `
+        <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+            <input type="checkbox" ${r.enabled ? 'checked' : ''} onchange="toggleReminderEnabled(${r.id}, this.checked)"
+                class="w-5 h-5 accent-indigo-600 flex-shrink-0">
+            <span class="font-mono text-sm text-slate-600 flex-shrink-0 w-14">${r.time_of_day.slice(0, 5)}</span>
+            <span class="flex-1 min-w-0 text-sm text-slate-700 truncate ${r.enabled ? '' : 'opacity-40 line-through'}">${escapeHtml(r.message)}</span>
+            <button onclick="startEditReminder(${r.id})" class="text-slate-400 hover:text-indigo-600 flex-shrink-0">✏️</button>
+            <button onclick="deleteReminder(${r.id})" class="text-slate-400 hover:text-rose-600 flex-shrink-0">🗑️</button>
+        </div>`;
+    }).join('');
+}
+
+window.startEditReminder = function(id) {
+    editingReminderId = id;
+    renderReminderList();
+};
+
+window.cancelReminderEdit = function() {
+    editingReminderId = null;
+    renderReminderList();
+};
+
+window.saveReminderEdit = async function(id) {
+    const time = document.getElementById(`edit-time-${id}`).value;
+    const message = document.getElementById(`edit-message-${id}`).value.trim();
+    if (!time || !message) return;
+    try {
+        await fetch(`${SUPABASE_URL}/rest/v1/reminder_schedule?id=eq.${id}`, {
+            method: 'PATCH',
+            headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+            // Clearing last_sent_date means an edited time becomes eligible to fire again today
+            // if it hasn't already passed — otherwise moving a reminder earlier in the day would
+            // silently stay silent until tomorrow.
+            body: JSON.stringify({ time_of_day: time, message, last_sent_date: null })
+        });
+        editingReminderId = null;
+        loadReminders();
+    } catch (e) {
+        alert('Erreur lors de la mise à jour');
+        console.error('[saveReminderEdit]', e);
+    }
+};
+
+window.toggleReminderEnabled = async function(id, enabled) {
+    try {
+        await fetch(`${SUPABASE_URL}/rest/v1/reminder_schedule?id=eq.${id}`, {
+            method: 'PATCH',
+            headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+            body: JSON.stringify({ enabled })
+        });
+        const r = allReminders.find(x => x.id === id);
+        if (r) r.enabled = enabled;
+        renderReminderList();
+    } catch (e) {
+        console.error('[toggleReminderEnabled]', e);
+        loadReminders(); // reload to reflect the true state since the optimistic toggle may not have persisted
+    }
+};
+
+window.deleteReminder = async function(id) {
+    if (!confirm('Supprimer ce rappel ?')) return;
+    try {
+        await fetch(`${SUPABASE_URL}/rest/v1/reminder_schedule?id=eq.${id}`, { method: 'DELETE', headers: HEADERS });
+        loadReminders();
+    } catch (e) {
+        alert('Erreur lors de la suppression');
+        console.error('[deleteReminder]', e);
+    }
+};
+
 // --- 3. LOGIQUE EBOOK & LECTEUR ---
 
 const isEpub = url => url && url.toLowerCase().endsWith('.epub');
@@ -1659,6 +1785,31 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = "Enregistrer le passage";
+            }
+        });
+    }
+
+    // D. Formulaire Ajout de rappel
+    const reminderAddForm = document.getElementById('reminder-add-form');
+    if (reminderAddForm) {
+        reminderAddForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const time_of_day = formData.get('time_of_day');
+            const message = formData.get('message')?.trim();
+            if (!time_of_day || !message) return;
+
+            try {
+                await fetch(`${SUPABASE_URL}/rest/v1/reminder_schedule`, {
+                    method: 'POST',
+                    headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+                    body: JSON.stringify({ time_of_day, message, enabled: true })
+                });
+                e.target.reset();
+                loadReminders();
+            } catch (err) {
+                alert("Erreur lors de l'ajout du rappel");
+                console.error('[reminder-add-form]', err);
             }
         });
     }
