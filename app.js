@@ -406,11 +406,57 @@ async function loadEbooks() {
         const ebooks = await response.json();
         allEbooks = ebooks || [];
         renderEbookList(allEbooks);
+        loadContinueReadingBanner(); // independent of the grid render — doesn't block it
     } catch (err) {
         grid.innerHTML = "<p class='text-rose-500 text-center'>Erreur bibliothèque</p>";
     }
 }
 window.loadEbooks = loadEbooks;
+
+let _lastReadBook = null; // { url, title, author, authorId } backing the "continue reading" banner
+
+async function loadContinueReadingBanner() {
+    const banner = document.getElementById('continue-reading-banner');
+    if (!banner) return;
+    banner.classList.add('hidden');
+    banner.classList.remove('flex');
+    _lastReadBook = null;
+
+    try {
+        const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/reading_progress?select=book_url,updated_at&order=updated_at.desc&limit=5`,
+            { headers: HEADERS }
+        );
+        const rows = await res.json() || [];
+
+        // Walk from most-recent, skipping any progress row whose book has since been
+        // removed from the library, rather than failing on the very first (most common) match.
+        const match = rows
+            .map(r => allEbooks.find(b => b.file_url === r.book_url))
+            .find(book => book);
+
+        if (!match) return;
+
+        _lastReadBook = {
+            url: match.file_url,
+            title: match.title,
+            author: match.authors?.name || '',
+            authorId: match.authors?.id || null
+        };
+
+        document.getElementById('continue-reading-title').textContent = _lastReadBook.title;
+        document.getElementById('continue-reading-author').textContent = _lastReadBook.author;
+        banner.classList.remove('hidden');
+        banner.classList.add('flex');
+    } catch (e) {
+        console.error('[loadContinueReadingBanner]', e); // offline/network failure — banner just stays hidden
+    }
+}
+
+window.resumeLastReading = function() {
+    if (!_lastReadBook) return;
+    openReader(_lastReadBook.url, _lastReadBook.title, _lastReadBook.author, _lastReadBook.authorId);
+};
 
 window.openReader = function(url, title, author, authorId) {
     console.log("📖 Ouverture de :", title);
@@ -437,6 +483,8 @@ window.openReader = function(url, title, author, authorId) {
     if (nav) nav.style.display = 'none';
     const libraryHeader = document.getElementById('library-header');
     if (libraryHeader) libraryHeader.style.display = 'none';
+    const continueBanner = document.getElementById('continue-reading-banner');
+    if (continueBanner) continueBanner.style.display = 'none';
     const addForm = document.getElementById('add-ebook-container');
     if (addForm) addForm.style.display = 'none';
     const searchWrap = document.getElementById('library-search-wrap');
@@ -538,6 +586,9 @@ window.closeReader = function() {
     if (nav) nav.style.display = '';
     const libraryHeader = document.getElementById('library-header');
     if (libraryHeader) libraryHeader.style.display = '';
+    const continueBanner = document.getElementById('continue-reading-banner');
+    if (continueBanner) continueBanner.style.display = '';
+    loadContinueReadingBanner(); // refresh so it reflects the session that was just closed
     const addForm = document.getElementById('add-ebook-container');
     if (addForm) addForm.style.display = '';
     const searchWrap = document.getElementById('library-search-wrap');

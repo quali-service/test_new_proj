@@ -462,6 +462,16 @@
         </section>
 
        <section id="ebook-section" class="hidden w-full max-w-5xl mx-auto p-6 animate-reveal self-start">
+    <div id="continue-reading-banner" onclick="resumeLastReading()" class="hidden items-center gap-4 mb-8 p-5 bg-indigo-600 rounded-3xl shadow-lg shadow-indigo-200 cursor-pointer hover:bg-indigo-700 transition-all">
+        <span class="text-3xl flex-shrink-0">📖</span>
+        <div class="flex-1 min-w-0">
+            <p class="text-indigo-200 text-[10px] font-bold uppercase tracking-widest">Reprendre ma lecture</p>
+            <h3 id="continue-reading-title" class="text-white font-bold truncate"></h3>
+            <p id="continue-reading-author" class="text-indigo-200 text-sm truncate"></p>
+        </div>
+        <span class="text-white text-xl flex-shrink-0">→</span>
+    </div>
+
     <div id="library-header" class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
         <div>
             <h2 class="text-4xl font-extrabold text-slate-800 tracking-tight">Ma Bibliothèque</h2>
