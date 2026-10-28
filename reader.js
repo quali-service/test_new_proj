@@ -107,30 +107,47 @@ const Reader = {
         });
 
         // Affichage et ajustement final au format iPhone
-        return this.rendition.display(startCfi || undefined).then(() => {
-            setTimeout(() => {
-                if (this.rendition) {
-                    this.rendition.resize();
-                    // This first display() call ran before applyTheme()'s font-size/line-height/
-                    // padding CSS was injected — that only happens reactively via the "rendered"
-                    // event as the section loads, which fires asynchronously after display()
-                    // already computed which page contains startCfi, using the book's default
-                    // (un-themed) layout. Once the theme has settled, that's the wrong page under
-                    // our actual layout — re-issuing display() now re-paginates with the real
-                    // theme active and lands exactly on the saved position instead of drifting.
-                    if (startCfi) {
-                        this.rendition.display(startCfi);
-                    }
-                    const overlay = document.getElementById('reader-overlay');
-                    if (overlay) {
-                        overlay.classList.remove('hidden');
-                        overlay.style.display = 'block';
-                    }
+        return this.rendition.display(startCfi || undefined)
+            .catch((err) => {
+                // A saved CFI can fail to resolve against this document (epub.js internals,
+                // e.g. a Range offset that no longer lines up) — without this fallback the
+                // reader hangs here forever: window.rendition never gets assigned in app.js,
+                // so page navigation silently no-ops and the TOC never loads. Fall back to the
+                // book's start so it's still readable, rather than leaving a blank screen.
+                if (startCfi) {
+                    console.error('[Reader] display(startCfi) failed, falling back to the start:', err);
+                    return this.rendition.display();
                 }
-            }, 300);
-        }).catch((err) => {
-            console.error('[Reader] display() failed:', err);
-        });
+                throw err;
+            })
+            .then(() => {
+                setTimeout(() => {
+                    if (this.rendition) {
+                        this.rendition.resize();
+                        // This first display() call ran before applyTheme()'s font-size/line-height/
+                        // padding CSS was injected — that only happens reactively via the "rendered"
+                        // event as the section loads, which fires asynchronously after display()
+                        // already computed which page contains startCfi, using the book's default
+                        // (un-themed) layout. Once the theme has settled, that's the wrong page under
+                        // our actual layout — re-issuing display() now re-paginates with the real
+                        // theme active and lands exactly on the saved position instead of drifting.
+                        if (startCfi) {
+                            this.rendition.display(startCfi).catch((err) => {
+                                // Same CFI, same potential failure — don't let it go uncaught a
+                                // second time; just stay wherever the first display() landed.
+                                console.error('[Reader] re-display(startCfi) after theme settle failed:', err);
+                            });
+                        }
+                        const overlay = document.getElementById('reader-overlay');
+                        if (overlay) {
+                            overlay.classList.remove('hidden');
+                            overlay.style.display = 'block';
+                        }
+                    }
+                }, 300);
+            }).catch((err) => {
+                console.error('[Reader] display() failed:', err);
+            });
     },
 
 setupNavigation: function(containerId) {

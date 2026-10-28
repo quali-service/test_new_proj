@@ -522,7 +522,24 @@ window.openReader = function(url, title, author, authorId) {
                     savedCfi = progressData?.[0]?.cfi || null;
                 } catch(e) { console.error('[progress] Failed to restore position:', e); }
 
-                Reader.init(data, "epub-viewer", savedCfi).then(() => {
+                let readerStuckTimer = setTimeout(() => {
+                    // Safety net: resolving a saved CFI can fail deep inside epub.js's own
+                    // pagination internals (locationOf/toRange) — outside any promise chain we
+                    // control, so no .catch() here can see it. When that happens window.rendition
+                    // never gets assigned and the reader hangs silently (blank screen, dead nav).
+                    // Rather than leave the book permanently unreadable, detect the hang and retry
+                    // once from the beginning, discarding the position that wouldn't resolve.
+                    if (!window.rendition) {
+                        console.error('[openReader] Reader appears stuck after restoring saved position — retrying from the start.');
+                        if (window.Reader) window.Reader.destroy();
+                        Reader.init(data, "epub-viewer", null)
+                            .then(() => finishReaderSetup(url))
+                            .catch(err => console.error("❌ Erreur d'initialisation du Reader (retry):", err));
+                    }
+                }, 6000);
+
+                function finishReaderSetup(bookUrl) {
+                    clearTimeout(readerStuckTimer);
                     window.rendition = Reader.rendition;
                     // Debounced save — writes to Supabase 2s after user stops turning pages
                     window.rendition.on('relocated', (location) => {
@@ -533,7 +550,7 @@ window.openReader = function(url, title, author, authorId) {
                                     method: 'POST',
                                     headers: { ...HEADERS, 'Prefer': 'resolution=merge-duplicates' },
                                     body: JSON.stringify({
-                                        book_url: url,
+                                        book_url: bookUrl,
                                         cfi: location.start.cfi,
                                         updated_at: new Date().toISOString()
                                     })
@@ -550,6 +567,10 @@ window.openReader = function(url, title, author, authorId) {
                             if (tocList) tocList.innerHTML = toc.map(item => renderTocItem(item)).join('');
                         }
                     });
+                }
+
+                Reader.init(data, "epub-viewer", savedCfi).then(() => {
+                    finishReaderSetup(url);
                     console.log("🚀 Reader.init terminé" + (savedCfi ? " — reprise à la page sauvegardée" : ""));
                 }).catch(err => {
                     console.error("❌ Erreur d'initialisation du Reader:", err);
