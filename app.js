@@ -1200,8 +1200,25 @@ function renderQuiz(data) {
         const formData = new FormData(e.target);
         const userAns = parseInt(formData.get('answer'));
         const isCorrect = userAns === data.reponse_correcte;
+        recordQuizAttempt(data.id, data.ressource_id, data.ressources?.author_id, isCorrect);
         displayResults(isCorrect, data.explication, data.question);
     };
+}
+
+// Logs every answered question — question_id/ressource_id/author_id captured at answer time
+// (not re-derived later by joining), so the attribution stays accurate even if a resource's
+// author is ever reassigned afterward. Fire-and-forget: a failed log shouldn't block the quiz.
+function recordQuizAttempt(questionId, ressourceId, authorId, isCorrect) {
+    fetch(`${SUPABASE_URL}/rest/v1/quiz_attempts`, {
+        method: 'POST',
+        headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+        body: JSON.stringify({
+            question_id: questionId,
+            ressource_id: ressourceId ?? null,
+            author_id: authorId ?? null,
+            is_correct: isCorrect
+        })
+    }).catch(e => console.error('[recordQuizAttempt]', e));
 }
 
 function displayResults(isCorrect, explanation, questionText) {
