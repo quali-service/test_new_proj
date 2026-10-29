@@ -927,16 +927,21 @@ let vocabQuizSourceFilterLabel = null;
 let _vocabSourcesLoaded = false;
 
 window.switchQuizTab = function(tab) {
-    const isVocab = tab === 'vocabulaire';
-    document.getElementById('ressources-quiz-wrapper').classList.toggle('hidden', isVocab);
-    document.getElementById('vocab-quiz-wrapper').classList.toggle('hidden', !isVocab);
+    document.getElementById('ressources-quiz-wrapper').classList.toggle('hidden', tab !== 'ressources');
+    document.getElementById('vocab-quiz-wrapper').classList.toggle('hidden', tab !== 'vocabulaire');
+    document.getElementById('ratees-wrapper').classList.toggle('hidden', tab !== 'ratees');
+
     const activeClass = 'flex-1 py-2.5 rounded-2xl text-sm font-bold transition-all bg-indigo-600 text-white shadow-sm';
     const inactiveClass = 'flex-1 py-2.5 rounded-2xl text-sm font-bold transition-all bg-slate-100 text-slate-500 hover:bg-slate-200';
-    document.getElementById('tab-ressources').className = isVocab ? inactiveClass : activeClass;
-    document.getElementById('tab-vocabulaire').className = isVocab ? activeClass : inactiveClass;
-    if (isVocab) {
+    document.getElementById('tab-ressources').className = tab === 'ressources' ? activeClass : inactiveClass;
+    document.getElementById('tab-vocabulaire').className = tab === 'vocabulaire' ? activeClass : inactiveClass;
+    document.getElementById('tab-ratees').className = tab === 'ratees' ? activeClass : inactiveClass;
+
+    if (tab === 'vocabulaire') {
         if (!_vocabSourcesLoaded) loadVocabSources();
         loadVocabQuestion();
+    } else if (tab === 'ratees') {
+        loadMissedQuestions();
     }
 };
 
@@ -1220,6 +1225,112 @@ function recordQuizAttempt(questionId, ressourceId, authorId, isCorrect) {
         })
     }).catch(e => console.error('[recordQuizAttempt]', e));
 }
+
+// --- 4c. QUESTIONS RATÉES ---
+//
+// "Ratée" means the MOST RECENT attempt on that question was wrong — not "ever wrong". This
+// is deliberate: answer it correctly again in the normal quiz and it drops off this list on
+// its own next time it's opened, with no dismiss/delete UI needed.
+
+let _missedQuestions = []; // backs the Copier button
+
+async function loadMissedQuestions() {
+    const loading = document.getElementById('ratees-loading');
+    const empty = document.getElementById('ratees-empty');
+    const list = document.getElementById('ratees-list');
+    const copyBtn = document.getElementById('ratees-copy-btn');
+
+    loading.classList.remove('hidden');
+    empty.classList.add('hidden');
+    list.innerHTML = '';
+    if (copyBtn) copyBtn.classList.add('hidden');
+
+    try {
+        const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/quiz_attempts?select=*,questions(question,choix,reponse_correcte,explication),ressources(title),authors(name)&order=answered_at.desc`,
+            { headers: HEADERS }
+        );
+        const attempts = await res.json() || [];
+
+        // Group by question_id (already sorted newest-first by the query, so each group's
+        // first entry is that question's most recent attempt).
+        const byQuestion = new Map();
+        for (const a of attempts) {
+            if (!byQuestion.has(a.question_id)) byQuestion.set(a.question_id, []);
+            byQuestion.get(a.question_id).push(a);
+        }
+
+        const missed = [];
+        for (const group of byQuestion.values()) {
+            const mostRecent = group[0];
+            if (mostRecent.is_correct) continue; // got it right last time — not "to review"
+            missed.push({
+                question: mostRecent.questions?.question || '',
+                choix: mostRecent.questions?.choix || [],
+                reponseCorrecte: mostRecent.questions?.reponse_correcte,
+                explication: mostRecent.questions?.explication || '',
+                authorName: mostRecent.authors?.name || null,
+                wrongCount: group.filter(a => !a.is_correct).length,
+                lastWrongAt: mostRecent.answered_at
+            });
+        }
+        missed.sort((a, b) => b.wrongCount - a.wrongCount);
+        _missedQuestions = missed;
+
+        loading.classList.add('hidden');
+        if (missed.length === 0) {
+            empty.classList.remove('hidden');
+            return;
+        }
+        if (copyBtn) copyBtn.classList.remove('hidden');
+        list.innerHTML = missed.map(renderMissedQuestionCard).join('');
+    } catch (e) {
+        loading.classList.add('hidden');
+        list.innerHTML = `<p class="text-rose-500 text-center py-8">Erreur de chargement</p>`;
+        console.error('[loadMissedQuestions]', e);
+    }
+}
+
+function renderMissedQuestionCard(item) {
+    const correctAnswer = item.choix[item.reponseCorrecte] || '';
+    const dateStr = new Date(item.lastWrongAt).toLocaleDateString('fr-FR');
+    return `
+    <div class="bg-white rounded-2xl border border-slate-100 p-5 space-y-2">
+        <div class="flex items-center justify-between gap-2">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">${escapeHtml(item.authorName || 'Sans auteur')}</span>
+            <span class="text-[10px] font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full flex-shrink-0">Ratée ${item.wrongCount}×</span>
+        </div>
+        <p class="font-bold text-slate-800">${escapeHtml(item.question)}</p>
+        <p class="text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">✓ ${escapeHtml(correctAnswer)}</p>
+        ${item.explication ? `<p class="text-sm text-slate-500">${escapeHtml(item.explication)}</p>` : ''}
+        <p class="text-[10px] text-slate-400">Dernière fois ratée le ${dateStr}</p>
+    </div>`;
+}
+
+window.copyMissedQuestions = function() {
+    if (!_missedQuestions.length) return;
+    const header = `❌ Questions ratées — Quizz App (${new Date().toLocaleDateString('fr-FR')})\n\n`;
+    const body = _missedQuestions.map((item, i) => {
+        const correctAnswer = item.choix[item.reponseCorrecte] || '';
+        const dateStr = new Date(item.lastWrongAt).toLocaleDateString('fr-FR');
+        let entry = `${i + 1}. [${item.authorName || 'Sans auteur'}] ${item.question}\n`;
+        entry += `   ✓ Bonne réponse : ${correctAnswer}\n`;
+        if (item.explication) entry += `   💡 ${item.explication}\n`;
+        entry += `   Ratée ${item.wrongCount} fois, dernière fois le ${dateStr}\n`;
+        return entry;
+    }).join('\n');
+
+    navigator.clipboard.writeText(header + body).then(() => {
+        const btn = document.getElementById('ratees-copy-btn');
+        if (!btn) return;
+        const original = btn.textContent;
+        btn.textContent = '✓ Copié !';
+        setTimeout(() => { btn.textContent = original; }, 1500);
+    }).catch(e => {
+        console.error('[copyMissedQuestions]', e);
+        alert('Impossible de copier dans le presse-papier');
+    });
+};
 
 function displayResults(isCorrect, explanation, questionText) {
     const resDiv = document.getElementById('result');
